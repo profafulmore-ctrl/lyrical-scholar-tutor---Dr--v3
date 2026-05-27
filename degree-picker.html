@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Future-Proof Degree Picker — AI-Resistant Career Finder</title>
-<meta name="description" content="Find the best degree for your future: filtered against AI-displacement risk, ranked by earning potential, with the top programs in your state." />
+<meta name="description" content="Find the best degree for your future: filtered against AI-displacement risk, ranked by earning potential, with the top programs in your state — international + cost-aware." />
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎓</text></svg>" />
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -26,6 +26,9 @@
   .slider-row { display: flex; align-items: center; gap: 12px; }
   .slider-row input[type=range] { flex: 1; accent-color: #f1c40f; }
   .slider-val { min-width: 28px; text-align: center; color: #f1c40f; font-weight: 600; }
+  .toggle { display: flex; align-items: center; gap: 10px; margin-top: 10px; cursor: pointer; user-select: none; }
+  .toggle input { width: 18px; height: 18px; accent-color: #f1c40f; }
+  .toggle-text { color: #c8c8e0; font-size: 0.92rem; }
   button.go { width: 100%; background: linear-gradient(90deg, #e67e22, #f1c40f); color: #0d0d1a; border: none; border-radius: 10px; padding: 14px; font-size: 1.05rem; font-weight: 700; cursor: pointer; margin-top: 18px; }
   button.go:hover { filter: brightness(1.1); }
   button.ghost { background: transparent; color: #9fa0b8; border: 1px solid #3a3a5a; border-radius: 8px; padding: 8px 14px; font-size: 0.88rem; cursor: pointer; }
@@ -41,6 +44,10 @@
   .badge.ai { background: #1a3a1a; border-color: #27ae60; color: #2ecc71; }
   .badge.pay { background: #3a2a1a; border-color: #e67e22; color: #f1c40f; }
   .badge.grow { background: #1a2a3a; border-color: #3498db; color: #5dade2; }
+  .badge.opt { background: #2a1a3a; border-color: #9b59b6; color: #bb8fce; }
+  .badge.cost-low { background: #1a3a2a; border-color: #16a085; color: #1abc9c; }
+  .badge.cost-med { background: #2a2a3a; border-color: #7f8c9a; color: #bdc3c7; }
+  .badge.cost-high { background: #3a1a1a; border-color: #c0392b; color: #e74c3c; }
   .match p { color: #c8c8e0; font-size: 0.95rem; margin: 8px 0; }
   .match strong { color: #e8e8f0; }
   .schools { margin-top: 10px; padding: 12px; background: #0d0d1a; border-radius: 8px; border: 1px solid #2a2a4a; }
@@ -53,13 +60,15 @@
   .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
   @media (max-width: 560px) { .row2 { grid-template-columns: 1fr; } }
   .footer-actions { display: flex; gap: 10px; justify-content: center; margin-top: 18px; flex-wrap: wrap; }
+  .intl-note { background: #1a1a3a; border: 1px solid #9b59b6; border-radius: 8px; padding: 10px 12px; font-size: 0.85rem; color: #bb8fce; margin-top: 6px; display: none; }
+  .intl-note.show { display: block; }
 </style>
 </head>
 <body>
 <div class="wrap">
   <header>
     <h1>🎓 Future-Proof Degree Picker</h1>
-    <p class="tag">Find your best degree — filtered against AI displacement, ranked by pay, matched to top programs in your state.</p>
+    <p class="tag">Find your best degree — filtered against AI displacement, ranked by pay, matched to top programs in your state. International &amp; cost-aware.</p>
   </header>
 
   <div id="quiz" class="card">
@@ -105,6 +114,17 @@
       </div>
     </div>
 
+    <label>How sensitive are you to tuition cost / debt? <span class="slider-val" id="costVal">3</span>/5</label>
+    <div class="slider-row"><input type="range" id="cost" min="1" max="5" value="3" /></div>
+
+    <div class="toggle">
+      <input type="checkbox" id="intl" />
+      <label for="intl" class="toggle-text" style="margin:0;">🌎 I'm an international student (filter for STEM-OPT eligible degrees)</label>
+    </div>
+    <div id="intlNote" class="intl-note">
+      <strong>STEM-OPT note:</strong> F-1 students who complete a U.S. STEM-designated degree can stay and work for up to 3 years (12-month OPT + 24-month STEM extension) — almost triple the standard OPT. We'll boost STEM-designated degrees in your results.
+    </div>
+
     <button id="go" class="go">Show my best degrees →</button>
   </div>
 
@@ -119,188 +139,350 @@
       <button class="ghost" id="print">🖨 Print / Save as PDF</button>
     </div>
     <p class="small">
-      Notes: AI-resistance scores reflect current evidence on which tasks AI is automating vs. augmenting (physical, regulated, judgment-heavy, and human-relational work scores higher). Salary figures are U.S. medians; top-of-band shows what you can earn with experience or specialization. School lists prioritize accredited programs with strong outcomes in that state; in-state tuition usually applies at public flagships.
+      Notes: AI-resistance scores reflect current evidence on which tasks AI is automating vs. augmenting (physical, regulated, judgment-heavy, and human-relational work scores higher). Salary figures are U.S. medians; top-of-band shows what you can earn with experience or specialization. Cost tiers are rough: <strong>Low</strong> = trade/cert paths under ~$20k total; <strong>Med</strong> = in-state public bachelor's ~$40–80k total; <strong>High</strong> = private/professional school often $150k+. STEM-OPT flag indicates degrees that are typically DHS STEM-designated (verify with your specific program's CIP code).
     </p>
   </div>
 </div>
 
 <script>
-/* ─── Data: degrees ─── */
+/* ─── Data: degrees ───
+   Fields:
+     aiResistance  (0–100)  — higher = more AI-proof
+     medianSalary  (USD)    — national median, US BLS / market
+     topPay        (USD)    — realistic top-of-band with experience/specialization
+     growth        (%)      — projected 10-yr employment growth (BLS where available)
+     stemDesignated (bool)  — typical DHS STEM CIP designation → F-1 OPT 3-yr extension
+     costTier      ('low'|'med'|'high') — typical total cost of education
+*/
 const DEGREES = [
-  // Healthcare — high AI-resistance, strong pay
+  /* ── Healthcare clinical ── */
   { id:'np', name:'Nurse Practitioner (MSN/DNP)', category:'Healthcare', years:6,
-    aiResistance:96, medianSalary:126260, topPay:175000, growth:38,
+    aiResistance:96, medianSalary:126260, topPay:175000, growth:38, stemDesignated:true, costTier:'high',
     interests:['health','helping','science'], style:['people','hands-on'], stem:'med',
     why:'Diagnosing, prescribing, and direct patient care under regulated licensure — AI tools assist but cannot legally or relationally replace the role.',
     careers:['Family NP','Psychiatric NP','Acute Care NP','Pediatric NP'] },
   { id:'rn', name:'Registered Nurse (BSN)', category:'Healthcare', years:4,
-    aiResistance:94, medianSalary:86070, topPay:120000, growth:6,
+    aiResistance:94, medianSalary:86070, topPay:120000, growth:6, stemDesignated:false, costTier:'med',
     interests:['health','helping'], style:['people','hands-on'], stem:'med',
     why:'Bedside assessment, judgment, and emotional support — chronically in shortage; AI augments charting but not care.',
     careers:['ICU Nurse','ER Nurse','Labor & Delivery','Travel Nurse'] },
   { id:'crna', name:'Nurse Anesthetist (DNP-CRNA)', category:'Healthcare', years:8,
-    aiResistance:97, medianSalary:212650, topPay:260000, growth:9,
+    aiResistance:97, medianSalary:212650, topPay:260000, growth:9, stemDesignated:true, costTier:'high',
     interests:['health','science','helping'], style:['hands-on','technical'], stem:'high',
     why:'Anesthesia delivery under high-stakes patient monitoring — one of the highest-paid clinical roles, deeply human-judgment driven.',
     careers:['Hospital CRNA','Outpatient Surgery','Pain Management'] },
+  { id:'midwife', name:'Certified Nurse-Midwife (MSN-CNM)', category:'Healthcare', years:6,
+    aiResistance:96, medianSalary:122450, topPay:160000, growth:38, stemDesignated:true, costTier:'high',
+    interests:['health','helping','science'], style:['people','hands-on'], stem:'med',
+    why:'Pregnancy, birth, and postpartum care — irreducibly human and physical work; the U.S. has a midwife shortage and a maternal-care access crisis.',
+    careers:['Hospital CNM','Birth Center','Home Birth','Women\'s Health'] },
   { id:'pa', name:'Physician Assistant (MS-PA)', category:'Healthcare', years:6,
-    aiResistance:93, medianSalary:130020, topPay:170000, growth:27,
+    aiResistance:93, medianSalary:130020, topPay:170000, growth:27, stemDesignated:true, costTier:'high',
     interests:['health','science','helping'], style:['people','hands-on'], stem:'high',
     why:'Diagnosing and treating across specialties; licensure, hands-on procedures, and physician-collaboration keep this insulated.',
     careers:['Surgical PA','ER PA','Dermatology PA','Orthopedic PA'] },
+  { id:'pharm', name:'Pharmacy (PharmD)', category:'Healthcare', years:6,
+    aiResistance:72, medianSalary:132750, topPay:170000, growth:3, stemDesignated:true, costTier:'high',
+    interests:['health','science','helping'], style:['technical','people'], stem:'high',
+    why:'Retail dispensing is automating quickly; the future is clinical pharmacy, hospital, ambulatory care, and specialty (oncology/HIV/transplant) where judgment + counseling drive the value.',
+    careers:['Clinical Pharmacist','Hospital Pharmacist','Ambulatory Care','Specialty Pharmacy'] },
+  { id:'optom', name:'Optometry (OD)', category:'Healthcare', years:8,
+    aiResistance:86, medianSalary:131860, topPay:180000, growth:9, stemDesignated:true, costTier:'high',
+    interests:['health','science','helping'], style:['hands-on','people','technical'], stem:'high',
+    why:'In-person eye exams, contact-lens fitting, and disease management — AI helps read retinal images, but exam + Rx remain hands-on and licensed.',
+    careers:['Private Practice','VA / Hospital OD','Pediatric Optometry','Ocular Disease'] },
   { id:'pt', name:'Physical Therapy (DPT)', category:'Healthcare', years:7,
-    aiResistance:95, medianSalary:99710, topPay:130000, growth:14,
+    aiResistance:95, medianSalary:99710, topPay:130000, growth:14, stemDesignated:true, costTier:'high',
     interests:['health','helping','sports'], style:['people','hands-on'], stem:'med',
     why:'Manual therapy, gait analysis, and one-on-one rehab — fundamentally physical and relational work.',
     careers:['Sports PT','Orthopedic PT','Pediatric PT','Neuro PT'] },
   { id:'ot', name:'Occupational Therapy (OTD)', category:'Healthcare', years:7,
-    aiResistance:94, medianSalary:96370, topPay:125000, growth:12,
+    aiResistance:94, medianSalary:96370, topPay:125000, growth:12, stemDesignated:true, costTier:'high',
     interests:['health','helping','creative'], style:['people','hands-on'], stem:'med',
     why:'Helping people regain daily-living skills — highly individualized, hands-on, and emotionally engaged.',
     careers:['Pediatric OT','Hand Therapist','Geriatric OT','School OT'] },
   { id:'slp', name:'Speech-Language Pathology (MS)', category:'Healthcare', years:6,
-    aiResistance:92, medianSalary:89290, topPay:120000, growth:18,
+    aiResistance:92, medianSalary:89290, topPay:120000, growth:18, stemDesignated:true, costTier:'med',
     interests:['health','helping','language'], style:['people'], stem:'med',
     why:'Diagnosing and treating speech, language, and swallowing disorders — therapeutic relationship is the core of the work.',
     careers:['School SLP','Medical SLP','Voice Therapy','Bilingual SLP'] },
+  { id:'audio', name:'Audiology (AuD)', category:'Healthcare', years:8,
+    aiResistance:90, medianSalary:87740, topPay:130000, growth:11, stemDesignated:true, costTier:'high',
+    interests:['health','helping','tech'], style:['hands-on','people'], stem:'med',
+    why:'Hearing diagnosis and device fitting — hands-on, regulated, and aging-demographic-driven.',
+    careers:['Clinical Audiologist','Pediatric Audiologist','Cochlear Implant Specialist'] },
   { id:'dental', name:'Dental Hygiene (BS) / Dentistry (DDS)', category:'Healthcare', years:4,
-    aiResistance:93, medianSalary:87530, topPay:200000, growth:7,
+    aiResistance:93, medianSalary:87530, topPay:200000, growth:7, stemDesignated:true, costTier:'high',
     interests:['health','hands-on'], style:['hands-on','people'], stem:'high',
     why:'Intra-oral procedures and chairside care — physical, regulated, and patient-trust-driven.',
     careers:['Dental Hygienist','General Dentist','Orthodontist','Oral Surgeon'] },
   { id:'vet', name:'Veterinary Medicine (DVM)', category:'Healthcare', years:8,
-    aiResistance:92, medianSalary:119100, topPay:200000, growth:20,
+    aiResistance:92, medianSalary:119100, topPay:200000, growth:20, stemDesignated:true, costTier:'high',
     interests:['health','animals','science'], style:['hands-on','people'], stem:'high',
     why:'Diagnosis, surgery, and care for animals across species — physical, multispecies, and severely understaffed.',
     careers:['Small Animal Vet','Equine Vet','Veterinary Surgeon','Wildlife/Zoo Vet'] },
+  { id:'athTr', name:'Athletic Training (MS-AT)', category:'Healthcare', years:6,
+    aiResistance:90, medianSalary:57930, topPay:90000, growth:14, stemDesignated:true, costTier:'med',
+    interests:['health','sports','helping'], style:['hands-on','people'], stem:'med',
+    why:'Injury prevention, on-field assessment, and rehab for athletes — physical, fast-decision work in unpredictable environments.',
+    careers:['Pro/College Sports','High School AT','Industrial / Tactical','Clinic-Based AT'] },
+
+  /* ── Allied health / techs ── */
   { id:'sono', name:'Diagnostic Medical Sonography (BS)', category:'Healthcare', years:4,
-    aiResistance:84, medianSalary:84470, topPay:110000, growth:10,
+    aiResistance:84, medianSalary:84470, topPay:110000, growth:10, stemDesignated:true, costTier:'med',
     interests:['health','tech'], style:['hands-on','technical'], stem:'med',
     why:'Real-time imaging requiring probe handling and patient interaction — AI assists reading but the scan itself is physical work.',
     careers:['Cardiac Sonographer','OB/GYN Sonographer','Vascular Tech','MSK Sonographer'] },
+  { id:'radTh', name:'Radiation Therapy (BS)', category:'Healthcare', years:4,
+    aiResistance:88, medianSalary:98300, topPay:130000, growth:2, stemDesignated:true, costTier:'med',
+    interests:['health','tech','science'], style:['hands-on','technical','people'], stem:'high',
+    why:'Operating linear accelerators and positioning cancer patients daily — high-stakes, hands-on, and emotionally engaged work that AI cannot stand in for.',
+    careers:['Hospital Radiation Therapist','Proton Therapy','Brachytherapy Specialist','Dosimetrist (with cert)'] },
+  { id:'rspTh', name:'Respiratory Therapy (BS)', category:'Healthcare', years:4,
+    aiResistance:90, medianSalary:77960, topPay:105000, growth:13, stemDesignated:true, costTier:'med',
+    interests:['health','science','helping'], style:['hands-on','technical'], stem:'med',
+    why:'Vent management, ICU airway support, and emergency response — irreplaceably hands-on critical care; demand exploded post-COVID.',
+    careers:['ICU RRT','Pulmonary Rehab','NICU RT','Sleep Disorders'] },
+  { id:'radTech', name:'Radiologic Technology (AAS/BS)', category:'Healthcare', years:2,
+    aiResistance:80, medianSalary:73410, topPay:100000, growth:6, stemDesignated:true, costTier:'low',
+    interests:['health','tech'], style:['hands-on','technical'], stem:'med',
+    why:'AI reads images; humans still acquire them — positioning patients, running CT/MRI scanners, and producing diagnostic-quality work is hands-on.',
+    careers:['CT Tech','MRI Tech','Mammography','Interventional Radiology Tech'] },
+  { id:'surgTech', name:'Surgical Technology (AAS)', category:'Healthcare', years:2,
+    aiResistance:93, medianSalary:60610, topPay:85000, growth:5, stemDesignated:true, costTier:'low',
+    interests:['health','hands-on'], style:['hands-on','technical'], stem:'med',
+    why:'Sterile-field operating room work — anticipating the surgeon\'s next move under pressure; AI is decades from the OR table.',
+    careers:['OR Tech','Travel Surg Tech','Cardiovascular OR','First Assistant (with cert)'] },
+  { id:'gen', name:'Genetic Counseling (MS)', category:'Healthcare', years:6,
+    aiResistance:88, medianSalary:95770, topPay:130000, growth:16, stemDesignated:true, costTier:'med',
+    interests:['health','science','helping'], style:['people','technical'], stem:'high',
+    why:'Translating genomic data into life decisions for families — high judgment + emotional nuance; field is exploding with precision medicine.',
+    careers:['Cancer GC','Prenatal GC','Cardiac GC','Pharmacogenomics'] },
 
-  // Mental Health & Social
+  /* ── Mental health / social ── */
   { id:'psych', name:'Clinical Psychology (PsyD/PhD)', category:'Mental Health', years:8,
-    aiResistance:91, medianSalary:92740, topPay:160000, growth:11,
+    aiResistance:91, medianSalary:92740, topPay:160000, growth:11, stemDesignated:true, costTier:'high',
     interests:['helping','psychology','people'], style:['people'], stem:'med',
     why:'Therapeutic alliance and clinical judgment under licensure — AI chatbots do not replace human-licensed care for serious conditions.',
     careers:['Private Practice','Neuropsychologist','Forensic Psychologist','Health Psychologist'] },
   { id:'counsel', name:'Mental Health Counseling (MA/MS-LPC)', category:'Mental Health', years:6,
-    aiResistance:89, medianSalary:53710, topPay:90000, growth:18,
+    aiResistance:89, medianSalary:53710, topPay:90000, growth:18, stemDesignated:false, costTier:'med',
     interests:['helping','psychology','people'], style:['people'], stem:'low',
     why:'Counseling relationship is the active ingredient — demand is surging post-pandemic and far outpaces supply.',
     careers:['LPC Private Practice','Substance Use Counselor','Trauma Therapist','Couples Counselor'] },
+  { id:'mft', name:'Marriage & Family Therapy (MA/MFT)', category:'Mental Health', years:6,
+    aiResistance:90, medianSalary:58510, topPay:95000, growth:14, stemDesignated:false, costTier:'med',
+    interests:['helping','psychology','people','language'], style:['people'], stem:'low',
+    why:'Systems-level relational work — the therapy IS the relationship, which no AI can substitute for under licensure.',
+    careers:['LMFT Private Practice','Couples Therapy','Family Therapy','Sex Therapy'] },
   { id:'msw', name:'Social Work (MSW-LCSW)', category:'Mental Health', years:6,
-    aiResistance:87, medianSalary:58380, topPay:90000, growth:9,
+    aiResistance:87, medianSalary:58380, topPay:90000, growth:9, stemDesignated:false, costTier:'med',
     interests:['helping','people','policy'], style:['people'], stem:'low',
     why:'Direct casework and clinical therapy under licensure — judgment, advocacy, and human navigation of systems.',
     careers:['Clinical Social Worker','Medical Social Worker','School Social Worker','Policy Advocate'] },
+  { id:'bcba', name:'Applied Behavior Analysis (MA-BCBA)', category:'Mental Health', years:6,
+    aiResistance:92, medianSalary:72820, topPay:110000, growth:25, stemDesignated:true, costTier:'med',
+    interests:['helping','psychology','science','people'], style:['people','technical'], stem:'med',
+    why:'1:1 behavior therapy, especially for autism — insurance-mandated, severely undersupplied, and inherently hands-on relational work.',
+    careers:['Pediatric BCBA','School-Based BCBA','Clinic Director','Organizational BCBA'] },
 
-  // Engineering & Tech that AI augments, not replaces
+  /* ── Public health ── */
+  { id:'mph', name:'Public Health (MPH)', category:'Mental Health', years:6,
+    aiResistance:75, medianSalary:76690, topPay:140000, growth:7, stemDesignated:true, costTier:'med',
+    interests:['health','policy','science','helping'], style:['technical','people'], stem:'med',
+    why:'Epidemiology, biostatistics, policy, and outbreak response — AI accelerates analysis but humans interpret, communicate, and act.',
+    careers:['Epidemiologist','Health Department','Global Health (NGO/WHO)','Health Policy Analyst'] },
+
+  /* ── Tech (builder/judgment roles) ── */
   { id:'cyber', name:'Cybersecurity (BS/MS)', category:'Tech', years:4,
-    aiResistance:82, medianSalary:120360, topPay:200000, growth:33,
+    aiResistance:82, medianSalary:120360, topPay:200000, growth:33, stemDesignated:true, costTier:'med',
     interests:['tech','problem-solving'], style:['technical'], stem:'high',
     why:'Defensive judgment, threat hunting, and incident response — AI helps attackers AND defenders, so demand keeps rising.',
     careers:['Security Engineer','Penetration Tester','SOC Analyst','Cloud Security'] },
   { id:'aiml', name:'AI / Machine Learning Engineering (BS/MS)', category:'Tech', years:6,
-    aiResistance:80, medianSalary:136620, topPay:250000, growth:23,
+    aiResistance:80, medianSalary:136620, topPay:250000, growth:23, stemDesignated:true, costTier:'med',
     interests:['tech','problem-solving','science'], style:['technical'], stem:'high',
     why:"You're the one *building* AI — top-paid in tech and shielded from displacement by being the builder.",
     careers:['ML Engineer','Applied Scientist','AI Research Engineer','MLOps Engineer'] },
+  { id:'cloud', name:'Cloud / DevOps / SRE Engineering (BS)', category:'Tech', years:4,
+    aiResistance:73, medianSalary:130000, topPay:220000, growth:17, stemDesignated:true, costTier:'med',
+    interests:['tech','problem-solving'], style:['technical'], stem:'high',
+    why:'AI writes code, but provisioning infrastructure, on-call response, and reliability engineering still need humans accountable for prod.',
+    careers:['Cloud Engineer (AWS/GCP/Azure)','SRE','Platform Engineer','DevOps Lead'] },
+  { id:'datasci', name:'Data Science / Statistics (BS/MS)', category:'Tech', years:4,
+    aiResistance:68, medianSalary:103500, topPay:180000, growth:35, stemDesignated:true, costTier:'med',
+    interests:['math','tech','problem-solving','science'], style:['technical'], stem:'high',
+    why:'AI automates rote analysis; the durable work is causal inference, experiment design, and being the human accountable for what the models say.',
+    careers:['Data Scientist','Quant Analyst','Biostatistician','Research Scientist'] },
+  { id:'actuary', name:'Actuarial Science (BS)', category:'Tech', years:4,
+    aiResistance:78, medianSalary:120000, topPay:250000, growth:23, stemDesignated:true, costTier:'med',
+    interests:['math','business','problem-solving'], style:['technical'], stem:'high',
+    why:'Licensed exam-based profession with regulatory sign-off authority — AI accelerates the modeling but the actuary owns the number.',
+    careers:['Life/Health Actuary','P&C Actuary','Pension Consultant','Catastrophe Modeler'] },
+
+  /* ── Engineering ── */
   { id:'civil', name:'Civil Engineering (BS)', category:'Engineering', years:4,
-    aiResistance:86, medianSalary:95890, topPay:140000, growth:6,
+    aiResistance:86, medianSalary:95890, topPay:140000, growth:6, stemDesignated:true, costTier:'med',
     interests:['building','problem-solving','math'], style:['technical','hands-on'], stem:'high',
     why:'Infrastructure — bridges, water, transit — requires PE licensure and physical-world judgment. Massive U.S. infrastructure spending.',
     careers:['Structural Engineer','Transportation Engineer','Water Resources','Construction Engineer'] },
   { id:'mech', name:'Mechanical Engineering (BS)', category:'Engineering', years:4,
-    aiResistance:84, medianSalary:99510, topPay:155000, growth:10,
+    aiResistance:84, medianSalary:99510, topPay:155000, growth:10, stemDesignated:true, costTier:'med',
     interests:['building','problem-solving','math'], style:['technical','hands-on'], stem:'high',
     why:'Designing physical systems — robotics, EVs, aerospace, HVAC. AI accelerates the work but a human ME still owns the design.',
     careers:['Robotics Engineer','Aerospace Engineer','EV/Powertrain Engineer','HVAC Designer'] },
-  { id:'electrical', name:'Electrical Engineering (BS)', category:'Engineering', years:4,
-    aiResistance:85, medianSalary:106950, topPay:165000, growth:5,
+  { id:'elec', name:'Electrical Engineering (BS)', category:'Engineering', years:4,
+    aiResistance:85, medianSalary:106950, topPay:165000, growth:5, stemDesignated:true, costTier:'med',
     interests:['tech','building','math'], style:['technical'], stem:'high',
     why:'Power, semiconductors, embedded systems — the U.S. CHIPS Act and grid modernization create durable demand.',
     careers:['Semiconductor Engineer','Power Systems','Embedded Systems','RF Engineer'] },
+  { id:'compe', name:'Computer Engineering (BS)', category:'Engineering', years:4,
+    aiResistance:76, medianSalary:132360, topPay:200000, growth:7, stemDesignated:true, costTier:'med',
+    interests:['tech','math','problem-solving'], style:['technical'], stem:'high',
+    why:'Hardware + low-level software — chip design, firmware, embedded. CHIPS Act funding is reshoring semiconductor work to the U.S.',
+    careers:['ASIC Engineer','Firmware Engineer','FPGA Engineer','Computer Architect'] },
   { id:'petro', name:'Petroleum Engineering (BS)', category:'Engineering', years:4,
-    aiResistance:83, medianSalary:135690, topPay:200000, growth:2,
+    aiResistance:83, medianSalary:135690, topPay:200000, growth:2, stemDesignated:true, costTier:'med',
     interests:['math','science','building'], style:['technical','hands-on'], stem:'high',
     why:'Field-based reservoir engineering — small graduate pool, very high starting pay, concentrated in TX/OK/CO/ND.',
     careers:['Reservoir Engineer','Drilling Engineer','Production Engineer'] },
+  { id:'chem', name:'Chemical Engineering (BS)', category:'Engineering', years:4,
+    aiResistance:84, medianSalary:112100, topPay:170000, growth:8, stemDesignated:true, costTier:'med',
+    interests:['science','math','building','problem-solving'], style:['technical'], stem:'high',
+    why:'Pharma manufacturing, batteries, semiconductors, biotech — physical-plant judgment + safety/regulatory sign-off keep humans central.',
+    careers:['Process Engineer (Pharma)','Battery Engineer','Semiconductor Process','Biotech Manufacturing'] },
+  { id:'aero', name:'Aerospace Engineering (BS)', category:'Engineering', years:4,
+    aiResistance:84, medianSalary:130720, topPay:185000, growth:6, stemDesignated:true, costTier:'med',
+    interests:['math','science','building','tech'], style:['technical'], stem:'high',
+    why:'Designing aircraft, spacecraft, and defense systems — regulated (FAA/DoD), safety-critical, and booming with NewSpace + defense spending.',
+    careers:['Aircraft Design','Propulsion Engineer','Spacecraft Systems','Flight Test Engineer'] },
+  { id:'bme', name:'Biomedical Engineering (BS)', category:'Engineering', years:4,
+    aiResistance:82, medianSalary:100730, topPay:155000, growth:7, stemDesignated:true, costTier:'med',
+    interests:['science','health','tech','math'], style:['technical'], stem:'high',
+    why:'Medical devices, prosthetics, imaging — FDA-regulated and physical; AI augments R&D but human engineers own the device.',
+    careers:['Medical Device R&D','Implant Engineer','Clinical Engineer','Imaging Systems'] },
+  { id:'envir', name:'Environmental Engineering (BS)', category:'Engineering', years:4,
+    aiResistance:82, medianSalary:96530, topPay:140000, growth:6, stemDesignated:true, costTier:'med',
+    interests:['science','building','policy','problem-solving'], style:['technical','hands-on'], stem:'high',
+    why:'Water treatment, air quality, remediation — permitted, regulated, and on-site. Climate-adaptation spending will only grow this.',
+    careers:['Water/Wastewater Engineer','Air Quality Engineer','Remediation Engineer','Sustainability Engineer'] },
   { id:'indust', name:'Industrial Engineering (BS)', category:'Engineering', years:4,
-    aiResistance:78, medianSalary:99380, topPay:140000, growth:12,
+    aiResistance:78, medianSalary:99380, topPay:140000, growth:12, stemDesignated:true, costTier:'med',
     interests:['math','problem-solving','business'], style:['technical'], stem:'high',
     why:'Optimizing systems and supply chains — one of the most flexible engineering degrees with strong manufacturing reshoring tailwinds.',
     careers:['Supply Chain Engineer','Operations Research','Quality Engineer','Process Engineer'] },
 
-  // Skilled trades — under-rated, AI-immune, debt-light
+  /* ── Skilled trades & energy ── */
   { id:'trades', name:'Skilled Trades (Electrician / Plumber / HVAC)', category:'Trades', years:2,
-    aiResistance:96, medianSalary:65000, topPay:130000, growth:8,
+    aiResistance:96, medianSalary:65000, topPay:130000, growth:8, stemDesignated:false, costTier:'low',
     interests:['hands-on','building','problem-solving'], style:['hands-on'], stem:'low',
     why:'Physical work in unpredictable spaces, licensure-protected. Six-figure income with a paid apprenticeship and zero student debt.',
     careers:['Master Electrician','Plumber','HVAC Tech','Solar Installer','Industrial Maintenance'] },
+  { id:'weld', name:'Welding Technology (AAS / Cert)', category:'Trades', years:2,
+    aiResistance:94, medianSalary:48940, topPay:120000, growth:2, stemDesignated:false, costTier:'low',
+    interests:['hands-on','building','problem-solving'], style:['hands-on'], stem:'low',
+    why:'High-skill welding (pipeline, underwater, aerospace, nuclear) pays six figures and is fundamentally physical — robots handle factory welds, humans handle the rest.',
+    careers:['Pipeline Welder','Underwater Welder','Aerospace Welder','Welding Inspector (CWI)'] },
+  { id:'wind', name:'Wind Turbine Tech (AAS / Cert)', category:'Trades', years:2,
+    aiResistance:95, medianSalary:61770, topPay:95000, growth:45, stemDesignated:false, costTier:'low',
+    interests:['hands-on','building','tech'], style:['hands-on','technical'], stem:'low',
+    why:'BLS-projected fastest-growing job in the U.S. — climbing turbines to do mechanical/electrical work that no AI is doing for you.',
+    careers:['Onshore Wind Tech','Offshore Wind Tech','Wind Site Lead','Renewable Energy Tech'] },
+  { id:'solar', name:'Solar PV Installer (Cert)', category:'Trades', years:1,
+    aiResistance:92, medianSalary:48800, topPay:80000, growth:22, stemDesignated:false, costTier:'low',
+    interests:['hands-on','building','tech'], style:['hands-on'], stem:'low',
+    why:'Residential + utility-scale solar buildout is one of the largest construction trends of the decade — rooftop labor doesn\'t automate.',
+    careers:['Residential PV Installer','Utility-Scale Solar','Solar Foreman','Battery Storage Tech'] },
+  { id:'diesel', name:'Diesel / Heavy Equipment Tech (AAS)', category:'Trades', years:2,
+    aiResistance:90, medianSalary:58970, topPay:95000, growth:4, stemDesignated:false, costTier:'low',
+    interests:['hands-on','building','problem-solving','tech'], style:['hands-on','technical'], stem:'low',
+    why:'Trucks, construction equipment, and rail rolling stock all need diagnostics + repair you can\'t do remotely; massive shortage.',
+    careers:['Truck Diesel Tech','Heavy Equipment Mechanic','Locomotive Mechanic','Mining Equipment Tech'] },
+  { id:'lineman', name:'Lineman / Power Line Tech (Cert/AAS)', category:'Trades', years:2,
+    aiResistance:96, medianSalary:85420, topPay:130000, growth:4, stemDesignated:false, costTier:'low',
+    interests:['hands-on','building','tech'], style:['hands-on'], stem:'low',
+    why:'Building and repairing the high-voltage grid — pension-eligible, six-figure capable, physically demanding, totally human work.',
+    careers:['Utility Lineman','Substation Tech','Transmission Lineman','Storm Restoration'] },
   { id:'construct', name:'Construction Management (BS)', category:'Trades', years:4,
-    aiResistance:85, medianSalary:104900, topPay:160000, growth:5,
+    aiResistance:85, medianSalary:104900, topPay:160000, growth:5, stemDesignated:false, costTier:'med',
     interests:['building','business','people'], style:['hands-on','people'], stem:'med',
     why:'On-site coordination of crews, schedules, and codes — physical site presence and stakeholder judgment can\'t be automated away.',
     careers:['Project Manager','Estimator','Superintendent','Owner / GC'] },
 
-  // Public service / safety
+  /* ── Public service / safety / aviation ── */
   { id:'fire', name:'Fire Science / Paramedic (AAS-BS)', category:'Public Safety', years:2,
-    aiResistance:97, medianSalary:55000, topPay:110000, growth:4,
+    aiResistance:97, medianSalary:55000, topPay:110000, growth:4, stemDesignated:false, costTier:'low',
     interests:['helping','hands-on','health'], style:['hands-on','people'], stem:'low',
     why:'Emergency response in unpredictable physical environments — pension-eligible public service, AI-irrelevant.',
     careers:['Firefighter/Paramedic','Fire Officer','Flight Paramedic','Fire Investigator'] },
   { id:'pilot', name:'Aviation / Professional Pilot (BS)', category:'Aviation', years:4,
-    aiResistance:80, medianSalary:171210, topPay:350000, growth:5,
+    aiResistance:80, medianSalary:171210, topPay:350000, growth:5, stemDesignated:true, costTier:'med',
     interests:['tech','hands-on','travel'], style:['technical','hands-on'], stem:'high',
     why:'Airline captains in severe shortage. Full automation is decades out; regulated dual-pilot ops keep humans in the seat.',
     careers:['Airline Pilot','Corporate Pilot','Cargo Pilot','Flight Instructor'] },
+  { id:'atc', name:'Air Traffic Control (AAS via FAA)', category:'Aviation', years:2,
+    aiResistance:92, medianSalary:137380, topPay:200000, growth:1, stemDesignated:false, costTier:'low',
+    interests:['tech','problem-solving','helping'], style:['technical'], stem:'high',
+    why:'Real-time, life-safety decisions; FAA hires aggressively and the U.S. is thousands of controllers short. Highly paid federal job, no degree debt path via FAA.',
+    careers:['Tower Controller','TRACON Controller','Center Controller','FAA Supervisor'] },
+  { id:'maritime', name:'Maritime / Merchant Marine (BS)', category:'Aviation', years:4,
+    aiResistance:88, medianSalary:87680, topPay:200000, growth:2, stemDesignated:true, costTier:'med',
+    interests:['tech','hands-on','travel'], style:['hands-on','technical'], stem:'high',
+    why:'Licensed deck/engine officers on commercial ships — physically aboard, regulated, and very well paid for time on rotation.',
+    careers:['Deck Officer','Engineering Officer','Tugboat Captain','Offshore Wind Vessels'] },
 
-  // Education
+  /* ── Education ── */
   { id:'teach', name:'Education / K-12 Teaching (BA + cert)', category:'Education', years:4,
-    aiResistance:86, medianSalary:62360, topPay:95000, growth:1,
+    aiResistance:86, medianSalary:62360, topPay:95000, growth:1, stemDesignated:false, costTier:'med',
     interests:['helping','language','people'], style:['people'], stem:'low',
     why:'Classroom management and relational learning — AI is a tool teachers use, not a substitute for them, and shortages are severe.',
     careers:['Elementary Teacher','High School Teacher','Special Ed Teacher','Reading Specialist'] },
   { id:'sped', name:'Special Education (BA/MA)', category:'Education', years:4,
-    aiResistance:93, medianSalary:65910, topPay:100000, growth:0,
+    aiResistance:93, medianSalary:65910, topPay:100000, growth:0, stemDesignated:false, costTier:'med',
     interests:['helping','psychology','people'], style:['people'], stem:'low',
     why:'IEPs, behavioral support, and 1:1 instruction — desperate national shortage, often with signing bonuses and loan forgiveness.',
     careers:['SpEd Teacher','BCBA','Autism Specialist','Transition Specialist'] },
 
-  // Law (selective — trial work, not doc review)
+  /* ── Law ── */
   { id:'law', name:'Law / Litigation (JD)', category:'Law', years:7,
-    aiResistance:74, medianSalary:145760, topPay:400000, growth:8,
+    aiResistance:74, medianSalary:145760, topPay:400000, growth:8, stemDesignated:false, costTier:'high',
     interests:['language','policy','problem-solving'], style:['people','technical'], stem:'low',
     why:'Trial advocacy, negotiation, and bar-licensed judgment hold up; AI is automating doc review but elevating trial lawyers.',
     careers:['Trial Attorney','Plaintiff Litigator','Family Law','Criminal Defense','Healthcare Law'] },
 
-  // Forensic accounting — nods to existing tutor
+  /* ── Business / accounting (selective) ── */
   { id:'forensic', name:'Forensic Accounting (MS / MAcc + CPA)', category:'Business', years:6,
-    aiResistance:78, medianSalary:88000, topPay:175000, growth:6,
+    aiResistance:78, medianSalary:88000, topPay:175000, growth:6, stemDesignated:true, costTier:'med',
     interests:['math','problem-solving','business'], style:['technical'], stem:'med',
     why:'Fraud investigation requires interview skills, expert testimony, and judgment under legal scrutiny. AI flags anomalies; humans build the case.',
     careers:['Forensic Accountant','Fraud Examiner (CFE)','Litigation Support','Internal Investigator'] },
 
-  // Architecture
+  /* ── Design / planning ── */
   { id:'arch', name:'Architecture (B.Arch / M.Arch)', category:'Design', years:5,
-    aiResistance:76, medianSalary:93310, topPay:140000, growth:5,
+    aiResistance:76, medianSalary:93310, topPay:140000, growth:5, stemDesignated:false, costTier:'med',
     interests:['creative','building','math'], style:['technical','creative'], stem:'med',
     why:'Licensed design responsibility, code compliance, and client relationships — AI accelerates drafting; the licensed architect still signs.',
     careers:['Project Architect','Sustainable Design','Healthcare Architect','Urban Designer'] },
+  { id:'urban', name:'Urban Planning (MURP)', category:'Design', years:6,
+    aiResistance:80, medianSalary:81800, topPay:130000, growth:4, stemDesignated:true, costTier:'med',
+    interests:['policy','building','creative','helping'], style:['people','technical'], stem:'med',
+    why:'Zoning, transportation, and community engagement — political and human work that AI can\'t do for you. Climate adaptation is creating new demand.',
+    careers:['City Planner','Transportation Planner','Housing Policy','Climate Resilience Planner'] },
 
-  // Audiology
-  { id:'aud', name:'Audiology (AuD)', category:'Healthcare', years:8,
-    aiResistance:90, medianSalary:87740, topPay:130000, growth:11,
-    interests:['health','helping','tech'], style:['hands-on','people'], stem:'med',
-    why:'Hearing diagnosis and device fitting — hands-on, regulated, and aging-demographic-driven.',
-    careers:['Clinical Audiologist','Pediatric Audiologist','Cochlear Implant Specialist'] }
+  /* ── Niche but durable ── */
+  { id:'funeral', name:'Funeral Services / Mortuary Science (AAS-BS)', category:'Public Safety', years:2,
+    aiResistance:97, medianSalary:58310, topPay:100000, growth:3, stemDesignated:false, costTier:'low',
+    interests:['helping','hands-on','people'], style:['hands-on','people'], stem:'low',
+    why:'Embalming, family service, and licensed funeral direction — physical and deeply human; demographic tailwind is enormous and competition is low.',
+    careers:['Funeral Director','Embalmer','Cemetery Manager','Funeral Home Owner'] },
+  { id:'court', name:'Court Reporting / Captioning (AAS)', category:'Law', years:2,
+    aiResistance:70, medianSalary:63940, topPay:115000, growth:3, stemDesignated:false, costTier:'low',
+    interests:['language','policy','tech'], style:['technical'], stem:'low',
+    why:'AI transcription is improving fast, but certified-record court reporting and live broadcast/CART captioning remain licensure-protected and in shortage.',
+    careers:['Official Court Reporter','Freelance Deposition','CART Captioner','Broadcast Captioner'] }
 ];
 
 /* ─── Data: state → top programs (by category) ─── */
-/* Curated list of well-regarded accredited programs by state, organized by degree category.
-   Where data is thin for a state, we fall back to flagship publics + nearby standouts. */
 const STATE_PROGRAMS = {
   AL: { Healthcare:['UAB (Birmingham)','Univ. of South Alabama','Auburn'], Tech:['Auburn','UAH','Univ. of Alabama'], Engineering:['Auburn','Alabama','UAH'], 'Mental Health':['UAB','Alabama','Auburn'], Trades:['Lawson State CC','Wallace State CC'], Education:['Auburn','Alabama','UAB'], Law:['Alabama','Cumberland (Samford)'], Business:['Alabama','Auburn'], Design:['Auburn'], 'Public Safety':['Columbia Southern','Athens State'], Aviation:['Auburn'] },
   AK: { Healthcare:['Univ. of Alaska Anchorage'], Tech:['UAF','UAA'], Engineering:['UAF','UAA'], 'Mental Health':['UAA','UAF'], Trades:['UAA Community & Tech College','UAS Career Ed'], Education:['UAA','UAF'], Law:['Seattle Univ. (Alaska Pathway)'], Business:['UAA','UAF'], Design:['UAA'], 'Public Safety':['UAA Justice'], Aviation:['UAA','UAF'] },
@@ -414,8 +596,10 @@ function init() {
     styleBox.appendChild(c);
   });
 
-  $('pay').oninput = e => $('payVal').textContent = e.target.value;
+  $('pay').oninput  = e => $('payVal').textContent  = e.target.value;
   $('safe').oninput = e => $('safeVal').textContent = e.target.value;
+  $('cost').oninput = e => $('costVal').textContent = e.target.value;
+  $('intl').onchange = e => $('intlNote').classList.toggle('show', e.target.checked);
 
   $('go').onclick = run;
   $('restart').onclick = () => {
@@ -433,6 +617,9 @@ function fmtMoney(n) {
   return '$' + n.toLocaleString();
 }
 
+const COST_TIER_SCORE = { low: 1.0, med: 0.5, high: 0 };
+const COST_TIER_LABEL = { low: 'Low cost path (< $20k)', med: 'Mid cost (~$40–80k)', high: 'High cost ($150k+)' };
+
 function scoreDegree(d, ans) {
   const interestOverlap = d.interests.filter(i => ans.interests.includes(i)).length;
   const styleOverlap = d.style.filter(s => ans.style.includes(s)).length;
@@ -445,12 +632,18 @@ function scoreDegree(d, ans) {
   const yearsFit = (d.years <= ans.years) ? 1.5 : (d.years <= ans.years + 2 ? 0.5 : -1);
 
   // normalized weights from sliders (1..5 → 0.2..1.0)
-  const wPay  = ans.pay / 5;
+  const wPay  = ans.pay  / 5;
   const wSafe = ans.safe / 5;
+  const wCost = ans.cost / 5;
 
-  // pay score: median scaled 0..1 at $200k cap
+  // pay score: median scaled with soft cap at $150k
   const payScore  = Math.min(d.medianSalary / 150000, 1.6);
   const safeScore = d.aiResistance / 100;
+  const costScore = COST_TIER_SCORE[d.costTier] ?? 0.5;
+
+  // International student: F-1 students need STEM designation for the 3-yr OPT extension.
+  // Big positive for STEM-designated, modest penalty for non-STEM if intl is on.
+  const intlBoost = ans.intl ? (d.stemDesignated ? 3.5 : -2.5) : 0;
 
   return (
     interestOverlap * 2.5 +
@@ -458,12 +651,13 @@ function scoreDegree(d, ans) {
     stemFit                +
     yearsFit               +
     payScore  * wPay  * 5  +
-    safeScore * wSafe * 6
+    safeScore * wSafe * 6  +
+    costScore * wCost * 3  +
+    intlBoost
   );
 }
 
 function categoryForSchools(d) {
-  // map degree category → state-programs key
   const map = {
     Healthcare: 'Healthcare', 'Mental Health': 'Mental Health',
     Tech: 'Tech', Engineering: 'Engineering', Trades: 'Trades',
@@ -478,13 +672,14 @@ function run() {
     state: $('state').value,
     interests: getSelected('interests'),
     style: getSelected('style'),
-    pay: +$('pay').value,
+    pay:  +$('pay').value,
     safe: +$('safe').value,
+    cost: +$('cost').value,
     years: +$('years').value,
-    stem: $('stem').value
+    stem: $('stem').value,
+    intl: $('intl').checked
   };
 
-  // If they pick nothing, score everything neutrally on pay+safe
   const scored = DEGREES.map(d => ({ d, score: scoreDegree(d, ans) }))
     .sort((a, b) => b.score - a.score);
 
@@ -494,12 +689,17 @@ function run() {
 
   const out = $('matches');
   out.innerHTML = '';
-  top.forEach(({ d, score }, idx) => {
+  top.forEach(({ d }, idx) => {
     const cat = categoryForSchools(d);
     const stateProgs = (STATE_PROGRAMS[ans.state] && STATE_PROGRAMS[ans.state][cat]) || [];
     const schoolsHtml = stateProgs.length
       ? stateProgs.map(s => `• ${s}`).join('<br>')
-      : `Top programs in ${stateName} weren\'t in our curated list for this category — check accredited public flagships (e.g., your state university) and nearby private options.`;
+      : `Top programs in ${stateName} weren\'t in our curated list for this category — check accredited public flagships and nearby private options.`;
+
+    const optBadge = d.stemDesignated
+      ? `<span class="badge opt">🌎 STEM-OPT eligible</span>`
+      : (ans.intl ? `<span class="badge" style="border-color:#c0392b;color:#e74c3c;">⚠ Not STEM-designated (12-mo OPT only)</span>` : '');
+    const costBadge = `<span class="badge cost-${d.costTier}">💵 ${COST_TIER_LABEL[d.costTier]}</span>`;
 
     const el = document.createElement('div');
     el.className = 'match' + (idx === 0 ? ' rank1' : '');
@@ -514,6 +714,8 @@ function run() {
         <span class="badge ai">🛡 ${d.aiResistance}% AI-resistant</span>
         <span class="badge pay">💰 ${fmtMoney(d.medianSalary)} median · up to ${fmtMoney(d.topPay)}</span>
         <span class="badge grow">📈 ${d.growth >= 0 ? '+' : ''}${d.growth}% job growth (10yr)</span>
+        ${costBadge}
+        ${optBadge}
       </div>
       <div class="meter"><div style="width:${d.aiResistance}%"></div></div>
       <p><strong>Why it survives AI:</strong> ${d.why}</p>
