@@ -30,6 +30,10 @@ npm run dev
 - ACCT 5303 — Managerial Accounting
 - ACCT 5350 — Forensic Accounting
 
+## Future-Proof Degree Picker
+
+A standalone career-advising tool at **`degree-picker.html`**: students enter their state, interests, preferred work style, pay priority, and AI-safety priority, and the tool returns ranked degree recommendations filtered against AI displacement (jobs AI is expected to take are excluded), with median + top-end salaries, 10-year job growth, and the top accredited programs in their state. No backend required — open the file directly or deploy as a static page.
+
 ## License
 
 For educational use at TAMU-CT.

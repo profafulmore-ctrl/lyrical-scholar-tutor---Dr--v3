@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Future-Proof Degree Picker — AI-Resistant Career Finder</title>
+<meta name="description" content="Find the best degree for your future: filtered against AI-displacement risk, ranked by earning potential, with the top programs in your state." />
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎓</text></svg>" />
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { background: #0d0d1a; color: #e8e8f0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.5; min-height: 100vh; }
+  body { padding: 24px 16px 64px; }
+  .wrap { max-width: 980px; margin: 0 auto; }
+  header { text-align: center; margin-bottom: 28px; }
+  h1 { font-size: clamp(1.6rem, 4vw, 2.4rem); background: linear-gradient(90deg, #f1c40f, #e67e22, #c0392b); -webkit-background-clip: text; background-clip: text; color: transparent; margin-bottom: 8px; }
+  .tag { color: #9fa0b8; font-size: 0.95rem; }
+  .card { background: #15152a; border: 1px solid #2a2a4a; border-radius: 14px; padding: 22px; margin-bottom: 18px; }
+  .card h2 { font-size: 1.15rem; margin-bottom: 14px; color: #f1c40f; }
+  label { display: block; font-size: 0.9rem; color: #c8c8e0; margin: 14px 0 6px; }
+  select, input[type=text] { width: 100%; background: #0d0d1a; color: #e8e8f0; border: 1px solid #3a3a5a; border-radius: 8px; padding: 10px 12px; font-size: 1rem; }
+  select:focus, input:focus { outline: none; border-color: #f1c40f; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+  .chip { background: #1f1f3a; border: 1px solid #3a3a5a; color: #c8c8e0; border-radius: 999px; padding: 8px 14px; font-size: 0.88rem; cursor: pointer; user-select: none; transition: all 0.15s; }
+  .chip:hover { border-color: #f1c40f; }
+  .chip.on { background: #f1c40f; color: #0d0d1a; border-color: #f1c40f; font-weight: 600; }
+  .slider-row { display: flex; align-items: center; gap: 12px; }
+  .slider-row input[type=range] { flex: 1; accent-color: #f1c40f; }
+  .slider-val { min-width: 28px; text-align: center; color: #f1c40f; font-weight: 600; }
+  button.go { width: 100%; background: linear-gradient(90deg, #e67e22, #f1c40f); color: #0d0d1a; border: none; border-radius: 10px; padding: 14px; font-size: 1.05rem; font-weight: 700; cursor: pointer; margin-top: 18px; }
+  button.go:hover { filter: brightness(1.1); }
+  button.ghost { background: transparent; color: #9fa0b8; border: 1px solid #3a3a5a; border-radius: 8px; padding: 8px 14px; font-size: 0.88rem; cursor: pointer; }
+  .results { display: none; }
+  .results.show { display: block; }
+  .match { background: #15152a; border: 1px solid #2a2a4a; border-radius: 14px; padding: 20px; margin-bottom: 14px; }
+  .match.rank1 { border-color: #f1c40f; box-shadow: 0 0 0 1px #f1c40f; }
+  .match-head { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 10px; margin-bottom: 12px; }
+  .match-title { font-size: 1.2rem; font-weight: 700; color: #f1c40f; }
+  .match-cat { font-size: 0.82rem; color: #9fa0b8; }
+  .badges { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0; }
+  .badge { background: #1f1f3a; border: 1px solid #3a3a5a; color: #c8c8e0; border-radius: 6px; padding: 4px 10px; font-size: 0.82rem; }
+  .badge.ai { background: #1a3a1a; border-color: #27ae60; color: #2ecc71; }
+  .badge.pay { background: #3a2a1a; border-color: #e67e22; color: #f1c40f; }
+  .badge.grow { background: #1a2a3a; border-color: #3498db; color: #5dade2; }
+  .match p { color: #c8c8e0; font-size: 0.95rem; margin: 8px 0; }
+  .match strong { color: #e8e8f0; }
+  .schools { margin-top: 10px; padding: 12px; background: #0d0d1a; border-radius: 8px; border: 1px solid #2a2a4a; }
+  .schools-head { font-size: 0.85rem; color: #9fa0b8; margin-bottom: 6px; }
+  .schools-list { color: #e8e8f0; font-size: 0.95rem; }
+  .careers { font-size: 0.9rem; color: #c8c8e0; margin-top: 6px; }
+  .meter { height: 6px; background: #2a2a4a; border-radius: 3px; overflow: hidden; margin-top: 4px; }
+  .meter > div { height: 100%; background: linear-gradient(90deg, #27ae60, #2ecc71); }
+  .small { font-size: 0.8rem; color: #7a7a95; margin-top: 16px; line-height: 1.5; }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 560px) { .row2 { grid-template-columns: 1fr; } }
+  .footer-actions { display: flex; gap: 10px; justify-content: center; margin-top: 18px; flex-wrap: wrap; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>🎓 Future-Proof Degree Picker</h1>
+    <p class="tag">Find your best degree — filtered against AI displacement, ranked by pay, matched to top programs in your state.</p>
+  </header>
+
+  <div id="quiz" class="card">
+    <h2>Tell us about you</h2>
+
+    <label for="state">What state will you study in?</label>
+    <select id="state"></select>
+
+    <label>What kind of work energizes you? <span style="color:#7a7a95;font-weight:400;">(pick up to 3)</span></label>
+    <div id="interests" class="chips"></div>
+
+    <label>How you like to work <span style="color:#7a7a95;font-weight:400;">(pick all that apply)</span></label>
+    <div id="style" class="chips"></div>
+
+    <div class="row2">
+      <div>
+        <label>How important is high pay? <span class="slider-val" id="payVal">4</span>/5</label>
+        <div class="slider-row"><input type="range" id="pay" min="1" max="5" value="4" /></div>
+      </div>
+      <div>
+        <label>How important is AI-safety? <span class="slider-val" id="safeVal">5</span>/5</label>
+        <div class="slider-row"><input type="range" id="safe" min="1" max="5" value="5" /></div>
+      </div>
+    </div>
+
+    <div class="row2">
+      <div>
+        <label>How long are you willing to study?</label>
+        <select id="years">
+          <option value="2">≤ 2 years (Certificate / Associate)</option>
+          <option value="4" selected>4 years (Bachelor's)</option>
+          <option value="6">6 years (Bachelor's + Master's)</option>
+          <option value="8">7+ years (Doctoral / Professional)</option>
+        </select>
+      </div>
+      <div>
+        <label>Tolerance for math/science?</label>
+        <select id="stem">
+          <option value="low">Low — keep it light</option>
+          <option value="med" selected>Medium — I can handle it</option>
+          <option value="high">High — bring it on</option>
+        </select>
+      </div>
+    </div>
+
+    <button id="go" class="go">Show my best degrees →</button>
+  </div>
+
+  <div id="results" class="results">
+    <div class="card">
+      <h2 id="resultsTitle">Your top matches</h2>
+      <p style="color:#9fa0b8;font-size:0.92rem;">Ranked by fit with your answers, weighted against AI-displacement risk and earning potential. Salaries reflect U.S. national medians (BLS / market estimates). Tap a match for school details.</p>
+    </div>
+    <div id="matches"></div>
+    <div class="footer-actions">
+      <button class="ghost" id="restart">↻ Start over</button>
+      <button class="ghost" id="print">🖨 Print / Save as PDF</button>
+    </div>
+    <p class="small">
+      Notes: AI-resistance scores reflect current evidence on which tasks AI is automating vs. augmenting (physical, regulated, judgment-heavy, and human-relational work scores higher). Salary figures are U.S. medians; top-of-band shows what you can earn with experience or specialization. School lists prioritize accredited programs with strong outcomes in that state; in-state tuition usually applies at public flagships.
+    </p>
+  </div>
+</div>
+
+<script>
+/* ─── Data: degrees ─── */
+const DEGREES = [
+  // Healthcare — high AI-resistance, strong pay
+  { id:'np', name:'Nurse Practitioner (MSN/DNP)', category:'Healthcare', years:6,
+    aiResistance:96, medianSalary:126260, topPay:175000, growth:38,
+    interests:['health','helping','science'], style:['people','hands-on'], stem:'med',
+    why:'Diagnosing, prescribing, and direct patient care under regulated licensure — AI tools assist but cannot legally or relationally replace the role.',
+    careers:['Family NP','Psychiatric NP','Acute Care NP','Pediatric NP'] },
+  { id:'rn', name:'Registered Nurse (BSN)', category:'Healthcare', years:4,
+    aiResistance:94, medianSalary:86070, topPay:120000, growth:6,
+    interests:['health','helping'], style:['people','hands-on'], stem:'med',
+    why:'Bedside assessment, judgment, and emotional support — chronically in shortage; AI augments charting but not care.',
+    careers:['ICU Nurse','ER Nurse','Labor & Delivery','Travel Nurse'] },
+  { id:'crna', name:'Nurse Anesthetist (DNP-CRNA)', category:'Healthcare', years:8,
+    aiResistance:97, medianSalary:212650, topPay:260000, growth:9,
+    interests:['health','science','helping'], style:['hands-on','technical'], stem:'high',
+    why:'Anesthesia delivery under high-stakes patient monitoring — one of the highest-paid clinical roles, deeply human-judgment driven.',
+    careers:['Hospital CRNA','Outpatient Surgery','Pain Management'] },
+  { id:'pa', name:'Physician Assistant (MS-PA)', category:'Healthcare', years:6,
+    aiResistance:93, medianSalary:130020, topPay:170000, growth:27,
+    interests:['health','science','helping'], style:['people','hands-on'], stem:'high',
+    why:'Diagnosing and treating across specialties; licensure, hands-on procedures, and physician-collaboration keep this insulated.',
+    careers:['Surgical PA','ER PA','Dermatology PA','Orthopedic PA'] },
+  { id:'pt', name:'Physical Therapy (DPT)', category:'Healthcare', years:7,
+    aiResistance:95, medianSalary:99710, topPay:130000, growth:14,
+    interests:['health','helping','sports'], style:['people','hands-on'], stem:'med',
+    why:'Manual therapy, gait analysis, and one-on-one rehab — fundamentally physical and relational work.',
+    careers:['Sports PT','Orthopedic PT','Pediatric PT','Neuro PT'] },
+  { id:'ot', name:'Occupational Therapy (OTD)', category:'Healthcare', years:7,
+    aiResistance:94, medianSalary:96370, topPay:125000, growth:12,
+    interests:['health','helping','creative'], style:['people','hands-on'], stem:'med',
+    why:'Helping people regain daily-living skills — highly individualized, hands-on, and emotionally engaged.',
+    careers:['Pediatric OT','Hand Therapist','Geriatric OT','School OT'] },
+  { id:'slp', name:'Speech-Language Pathology (MS)', category:'Healthcare', years:6,
+    aiResistance:92, medianSalary:89290, topPay:120000, growth:18,
+    interests:['health','helping','language'], style:['people'], stem:'med',
+    why:'Diagnosing and treating speech, language, and swallowing disorders — therapeutic relationship is the core of the work.',
+    careers:['School SLP','Medical SLP','Voice Therapy','Bilingual SLP'] },
+  { id:'dental', name:'Dental Hygiene (BS) / Dentistry (DDS)', category:'Healthcare', years:4,
+    aiResistance:93, medianSalary:87530, topPay:200000, growth:7,
+    interests:['health','hands-on'], style:['hands-on','people'], stem:'high',
+    why:'Intra-oral procedures and chairside care — physical, regulated, and patient-trust-driven.',
+    careers:['Dental Hygienist','General Dentist','Orthodontist','Oral Surgeon'] },
+  { id:'vet', name:'Veterinary Medicine (DVM)', category:'Healthcare', years:8,
+    aiResistance:92, medianSalary:119100, topPay:200000, growth:20,
+    interests:['health','animals','science'], style:['hands-on','people'], stem:'high',
+    why:'Diagnosis, surgery, and care for animals across species — physical, multispecies, and severely understaffed.',
+    careers:['Small Animal Vet','Equine Vet','Veterinary Surgeon','Wildlife/Zoo Vet'] },
+  { id:'sono', name:'Diagnostic Medical Sonography (BS)', category:'Healthcare', years:4,
+    aiResistance:84, medianSalary:84470, topPay:110000, growth:10,
+    interests:['health','tech'], style:['hands-on','technical'], stem:'med',
+    why:'Real-time imaging requiring probe handling and patient interaction — AI assists reading but the scan itself is physical work.',
+    careers:['Cardiac Sonographer','OB/GYN Sonographer','Vascular Tech','MSK Sonographer'] },
+
+  // Mental Health & Social
+  { id:'psych', name:'Clinical Psychology (PsyD/PhD)', category:'Mental Health', years:8,
+    aiResistance:91, medianSalary:92740, topPay:160000, growth:11,
+    interests:['helping','psychology','people'], style:['people'], stem:'med',
+    why:'Therapeutic alliance and clinical judgment under licensure — AI chatbots do not replace human-licensed care for serious conditions.',
+    careers:['Private Practice','Neuropsychologist','Forensic Psychologist','Health Psychologist'] },
+  { id:'counsel', name:'Mental Health Counseling (MA/MS-LPC)', category:'Mental Health', years:6,
+    aiResistance:89, medianSalary:53710, topPay:90000, growth:18,
+    interests:['helping','psychology','people'], style:['people'], stem:'low',
+    why:'Counseling relationship is the active ingredient — demand is surging post-pandemic and far outpaces supply.',
+    careers:['LPC Private Practice','Substance Use Counselor','Trauma Therapist','Couples Counselor'] },
+  { id:'msw', name:'Social Work (MSW-LCSW)', category:'Mental Health', years:6,
+    aiResistance:87, medianSalary:58380, topPay:90000, growth:9,
+    interests:['helping','people','policy'], style:['people'], stem:'low',
+    why:'Direct casework and clinical therapy under licensure — judgment, advocacy, and human navigation of systems.',
+    careers:['Clinical Social Worker','Medical Social Worker','School Social Worker','Policy Advocate'] },
+
+  // Engineering & Tech that AI augments, not replaces
+  { id:'cyber', name:'Cybersecurity (BS/MS)', category:'Tech', years:4,
+    aiResistance:82, medianSalary:120360, topPay:200000, growth:33,
+    interests:['tech','problem-solving'], style:['technical'], stem:'high',
+    why:'Defensive judgment, threat hunting, and incident response — AI helps attackers AND defenders, so demand keeps rising.',
+    careers:['Security Engineer','Penetration Tester','SOC Analyst','Cloud Security'] },
+  { id:'aiml', name:'AI / Machine Learning Engineering (BS/MS)', category:'Tech', years:6,
+    aiResistance:80, medianSalary:136620, topPay:250000, growth:23,
+    interests:['tech','problem-solving','science'], style:['technical'], stem:'high',
+    why:"You're the one *building* AI — top-paid in tech and shielded from displacement by being the builder.",
+    careers:['ML Engineer','Applied Scientist','AI Research Engineer','MLOps Engineer'] },
+  { id:'civil', name:'Civil Engineering (BS)', category:'Engineering', years:4,
+    aiResistance:86, medianSalary:95890, topPay:140000, growth:6,
+    interests:['building','problem-solving','math'], style:['technical','hands-on'], stem:'high',
+    why:'Infrastructure — bridges, water, transit — requires PE licensure and physical-world judgment. Massive U.S. infrastructure spending.',
+    careers:['Structural Engineer','Transportation Engineer','Water Resources','Construction Engineer'] },
+  { id:'mech', name:'Mechanical Engineering (BS)', category:'Engineering', years:4,
+    aiResistance:84, medianSalary:99510, topPay:155000, growth:10,
+    interests:['building','problem-solving','math'], style:['technical','hands-on'], stem:'high',
+    why:'Designing physical systems — robotics, EVs, aerospace, HVAC. AI accelerates the work but a human ME still owns the design.',
+    careers:['Robotics Engineer','Aerospace Engineer','EV/Powertrain Engineer','HVAC Designer'] },
+  { id:'electrical', name:'Electrical Engineering (BS)', category:'Engineering', years:4,
+    aiResistance:85, medianSalary:106950, topPay:165000, growth:5,
+    interests:['tech','building','math'], style:['technical'], stem:'high',
+    why:'Power, semiconductors, embedded systems — the U.S. CHIPS Act and grid modernization create durable demand.',
+    careers:['Semiconductor Engineer','Power Systems','Embedded Systems','RF Engineer'] },
+  { id:'petro', name:'Petroleum Engineering (BS)', category:'Engineering', years:4,
+    aiResistance:83, medianSalary:135690, topPay:200000, growth:2,
+    interests:['math','science','building'], style:['technical','hands-on'], stem:'high',
+    why:'Field-based reservoir engineering — small graduate pool, very high starting pay, concentrated in TX/OK/CO/ND.',
+    careers:['Reservoir Engineer','Drilling Engineer','Production Engineer'] },
+  { id:'indust', name:'Industrial Engineering (BS)', category:'Engineering', years:4,
+    aiResistance:78, medianSalary:99380, topPay:140000, growth:12,
+    interests:['math','problem-solving','business'], style:['technical'], stem:'high',
+    why:'Optimizing systems and supply chains — one of the most flexible engineering degrees with strong manufacturing reshoring tailwinds.',
+    careers:['Supply Chain Engineer','Operations Research','Quality Engineer','Process Engineer'] },
+
+  // Skilled trades — under-rated, AI-immune, debt-light
+  { id:'trades', name:'Skilled Trades (Electrician / Plumber / HVAC)', category:'Trades', years:2,
+    aiResistance:96, medianSalary:65000, topPay:130000, growth:8,
+    interests:['hands-on','building','problem-solving'], style:['hands-on'], stem:'low',
+    why:'Physical work in unpredictable spaces, licensure-protected. Six-figure income with a paid apprenticeship and zero student debt.',
+    careers:['Master Electrician','Plumber','HVAC Tech','Solar Installer','Industrial Maintenance'] },
+  { id:'construct', name:'Construction Management (BS)', category:'Trades', years:4,
+    aiResistance:85, medianSalary:104900, topPay:160000, growth:5,
+    interests:['building','business','people'], style:['hands-on','people'], stem:'med',
+    why:'On-site coordination of crews, schedules, and codes — physical site presence and stakeholder judgment can\'t be automated away.',
+    careers:['Project Manager','Estimator','Superintendent','Owner / GC'] },
+
+  // Public service / safety
+  { id:'fire', name:'Fire Science / Paramedic (AAS-BS)', category:'Public Safety', years:2,
+    aiResistance:97, medianSalary:55000, topPay:110000, growth:4,
+    interests:['helping','hands-on','health'], style:['hands-on','people'], stem:'low',
+    why:'Emergency response in unpredictable physical environments — pension-eligible public service, AI-irrelevant.',
+    careers:['Firefighter/Paramedic','Fire Officer','Flight Paramedic','Fire Investigator'] },
+  { id:'pilot', name:'Aviation / Professional Pilot (BS)', category:'Aviation', years:4,
+    aiResistance:80, medianSalary:171210, topPay:350000, growth:5,
+    interests:['tech','hands-on','travel'], style:['technical','hands-on'], stem:'high',
+    why:'Airline captains in severe shortage. Full automation is decades out; regulated dual-pilot ops keep humans in the seat.',
+    careers:['Airline Pilot','Corporate Pilot','Cargo Pilot','Flight Instructor'] },
+
+  // Education
+  { id:'teach', name:'Education / K-12 Teaching (BA + cert)', category:'Education', years:4,
+    aiResistance:86, medianSalary:62360, topPay:95000, growth:1,
+    interests:['helping','language','people'], style:['people'], stem:'low',
+    why:'Classroom management and relational learning — AI is a tool teachers use, not a substitute for them, and shortages are severe.',
+    careers:['Elementary Teacher','High School Teacher','Special Ed Teacher','Reading Specialist'] },
+  { id:'sped', name:'Special Education (BA/MA)', category:'Education', years:4,
+    aiResistance:93, medianSalary:65910, topPay:100000, growth:0,
+    interests:['helping','psychology','people'], style:['people'], stem:'low',
+    why:'IEPs, behavioral support, and 1:1 instruction — desperate national shortage, often with signing bonuses and loan forgiveness.',
+    careers:['SpEd Teacher','BCBA','Autism Specialist','Transition Specialist'] },
+
+  // Law (selective — trial work, not doc review)
+  { id:'law', name:'Law / Litigation (JD)', category:'Law', years:7,
+    aiResistance:74, medianSalary:145760, topPay:400000, growth:8,
+    interests:['language','policy','problem-solving'], style:['people','technical'], stem:'low',
+    why:'Trial advocacy, negotiation, and bar-licensed judgment hold up; AI is automating doc review but elevating trial lawyers.',
+    careers:['Trial Attorney','Plaintiff Litigator','Family Law','Criminal Defense','Healthcare Law'] },
+
+  // Forensic accounting — nods to existing tutor
+  { id:'forensic', name:'Forensic Accounting (MS / MAcc + CPA)', category:'Business', years:6,
+    aiResistance:78, medianSalary:88000, topPay:175000, growth:6,
+    interests:['math','problem-solving','business'], style:['technical'], stem:'med',
+    why:'Fraud investigation requires interview skills, expert testimony, and judgment under legal scrutiny. AI flags anomalies; humans build the case.',
+    careers:['Forensic Accountant','Fraud Examiner (CFE)','Litigation Support','Internal Investigator'] },
+
+  // Architecture
+  { id:'arch', name:'Architecture (B.Arch / M.Arch)', category:'Design', years:5,
+    aiResistance:76, medianSalary:93310, topPay:140000, growth:5,
+    interests:['creative','building','math'], style:['technical','creative'], stem:'med',
+    why:'Licensed design responsibility, code compliance, and client relationships — AI accelerates drafting; the licensed architect still signs.',
+    careers:['Project Architect','Sustainable Design','Healthcare Architect','Urban Designer'] },
+
+  // Audiology
+  { id:'aud', name:'Audiology (AuD)', category:'Healthcare', years:8,
+    aiResistance:90, medianSalary:87740, topPay:130000, growth:11,
+    interests:['health','helping','tech'], style:['hands-on','people'], stem:'med',
+    why:'Hearing diagnosis and device fitting — hands-on, regulated, and aging-demographic-driven.',
+    careers:['Clinical Audiologist','Pediatric Audiologist','Cochlear Implant Specialist'] }
+];
+
+/* ─── Data: state → top programs (by category) ─── */
+/* Curated list of well-regarded accredited programs by state, organized by degree category.
+   Where data is thin for a state, we fall back to flagship publics + nearby standouts. */
+const STATE_PROGRAMS = {
+  AL: { Healthcare:['UAB (Birmingham)','Univ. of South Alabama','Auburn'], Tech:['Auburn','UAH','Univ. of Alabama'], Engineering:['Auburn','Alabama','UAH'], 'Mental Health':['UAB','Alabama','Auburn'], Trades:['Lawson State CC','Wallace State CC'], Education:['Auburn','Alabama','UAB'], Law:['Alabama','Cumberland (Samford)'], Business:['Alabama','Auburn'], Design:['Auburn'], 'Public Safety':['Columbia Southern','Athens State'], Aviation:['Auburn'] },
+  AK: { Healthcare:['Univ. of Alaska Anchorage'], Tech:['UAF','UAA'], Engineering:['UAF','UAA'], 'Mental Health':['UAA','UAF'], Trades:['UAA Community & Tech College','UAS Career Ed'], Education:['UAA','UAF'], Law:['Seattle Univ. (Alaska Pathway)'], Business:['UAA','UAF'], Design:['UAA'], 'Public Safety':['UAA Justice'], Aviation:['UAA','UAF'] },
+  AZ: { Healthcare:['Univ. of Arizona','Arizona State','Northern Arizona Univ.','Mayo Clinic Alix'], Tech:['ASU','Univ. of Arizona','Embry-Riddle Prescott'], Engineering:['ASU (Fulton)','Arizona','NAU'], 'Mental Health':['Arizona','ASU'], Trades:['Maricopa CCs','Pima CC'], Education:['ASU (Mary Lou Fulton)','NAU','Arizona'], Law:['ASU (Sandra Day O\'Connor)','Arizona'], Business:['ASU (W.P. Carey)','Arizona (Eller)'], Design:['ASU','Arizona'], 'Public Safety':['ASU','Glendale CC'], Aviation:['Embry-Riddle Prescott','ASU'] },
+  AR: { Healthcare:['UAMS','Arkansas State','Arkansas'], Tech:['Arkansas','UALR','Arkansas State'], Engineering:['Arkansas','Arkansas State','UALR'], 'Mental Health':['Arkansas','UALR'], Trades:['UA Pulaski Tech','NW Arkansas CC'], Education:['Arkansas','Arkansas State'], Law:['Arkansas','UALR Bowen'], Business:['Arkansas (Walton)','Arkansas State'], Design:['Arkansas'], 'Public Safety':['Arkansas','Arkansas State'], Aviation:['Henderson State'] },
+  CA: { Healthcare:['UCSF','UCLA','UC Davis','USC Keck','Stanford','CSU Long Beach (BSN)'], Tech:['Stanford','UC Berkeley','Caltech','UCLA','UCSD','USC','Harvey Mudd'], Engineering:['Berkeley','Stanford','Caltech','UCLA','UCSD','USC','Cal Poly SLO'], 'Mental Health':['UCLA','UC Berkeley','USC','Stanford','Pepperdine','Alliant'], Trades:['LA Trade Tech','Cypress College','Long Beach CC'], Education:['Stanford','UCLA','UC Berkeley','USC'], Law:['Stanford','Berkeley','UCLA','USC','UC Irvine'], Business:['Stanford GSB','Berkeley Haas','UCLA Anderson','USC Marshall'], Design:['UC Berkeley','UCLA','SCI-Arc','Cal Poly SLO'], 'Public Safety':['CSU Long Beach','SDSU'], Aviation:['San José State','Cal Aero Academy'] },
+  CO: { Healthcare:['CU Anschutz','Colorado State','Univ. of Northern Colorado'], Tech:['CU Boulder','Colorado School of Mines','Colorado State'], Engineering:['Colorado School of Mines','CU Boulder','Colorado State'], 'Mental Health':['Denver','CU Boulder','Colorado State'], Trades:['Front Range CC','Pickens Tech','Emily Griffith'], Education:['Northern Colorado','CU Denver','Colorado State'], Law:['CU Boulder','Denver Sturm'], Business:['CU Boulder (Leeds)','Denver (Daniels)'], Design:['CU Denver','Colorado State'], 'Public Safety':['Colorado Mesa','Metro State Denver'], Aviation:['Metro State Denver','CU Boulder'] },
+  CT: { Healthcare:['Yale','UConn','Quinnipiac','Fairfield','Sacred Heart'], Tech:['Yale','UConn','Wesleyan'], Engineering:['Yale','UConn','Trinity'], 'Mental Health':['Yale','UConn','Fairfield'], Trades:['Porter & Chester','Lincoln Tech CT'], Education:['UConn','CCSU','Quinnipiac'], Law:['Yale','UConn','Quinnipiac'], Business:['Yale SOM','UConn','Fairfield'], Design:['Yale','Hartford Art School'], 'Public Safety':['UConn','UNH (West Haven)'], Aviation:['Quinnipiac','CCSU'] },
+  DE: { Healthcare:['Univ. of Delaware','Delaware State','Wilmington Univ.'], Tech:['Univ. of Delaware'], Engineering:['Univ. of Delaware'], 'Mental Health':['Univ. of Delaware','Delaware State'], Trades:['Delaware Tech CC'], Education:['Univ. of Delaware','Delaware State'], Law:['Widener Delaware'], Business:['Univ. of Delaware (Lerner)'], Design:['Univ. of Delaware'], 'Public Safety':['Wilmington Univ.','Delaware Tech'], Aviation:['Delaware State'] },
+  FL: { Healthcare:['Univ. of Florida','Univ. of Miami','USF','Florida State','UCF'], Tech:['Florida','Florida State','UCF','USF','FIU'], Engineering:['Florida','UCF','USF','FIU','Florida State'], 'Mental Health':['Florida','Florida State','Miami'], Trades:['Miami Dade College','Valencia College'], Education:['Florida','Florida State','UCF'], Law:['Florida','Florida State','Miami'], Business:['Florida (Warrington)','Miami','UCF'], Design:['Florida','Miami','Ringling'], 'Public Safety':['UCF','FIU'], Aviation:['Embry-Riddle (Daytona)','Florida Tech'] },
+  GA: { Healthcare:['Emory','Augusta Univ.','Georgia State','Mercer'], Tech:['Georgia Tech','Emory','UGA'], Engineering:['Georgia Tech','UGA','Mercer'], 'Mental Health':['Emory','UGA','Georgia State'], Trades:['Georgia Piedmont Tech','Gwinnett Tech'], Education:['UGA','Georgia State','Mercer'], Law:['Emory','UGA','Georgia State'], Business:['Emory (Goizueta)','UGA (Terry)','Georgia Tech (Scheller)'], Design:['SCAD','Georgia Tech','UGA'], 'Public Safety':['Georgia State','Columbus State'], Aviation:['Middle Georgia State','Georgia Tech'] },
+  HI: { Healthcare:['Univ. of Hawaii (Manoa)','Hawaii Pacific'], Tech:['UH Manoa'], Engineering:['UH Manoa'], 'Mental Health':['UH Manoa','Chaminade'], Trades:['Honolulu CC','Hawaii CC'], Education:['UH Manoa','Chaminade'], Law:['UH Richardson'], Business:['UH Manoa (Shidler)'], Design:['UH Manoa'], 'Public Safety':['UH West Oahu','Chaminade'], Aviation:['UH Manoa','Honolulu CC'] },
+  ID: { Healthcare:['Idaho State','Boise State','Univ. of Idaho'], Tech:['Boise State','Idaho','Idaho State'], Engineering:['Boise State','Idaho','Idaho State'], 'Mental Health':['Idaho','Idaho State','Boise State'], Trades:['College of Western Idaho','Eastern Idaho Tech'], Education:['Idaho','Boise State','Idaho State'], Law:['Idaho'], Business:['Idaho','Boise State'], Design:['Boise State','Idaho'], 'Public Safety':['Boise State','Idaho State'], Aviation:['Idaho State','College of Southern Idaho'] },
+  IL: { Healthcare:['Northwestern','Univ. of Chicago','Rush','UIC','Loyola','Univ. of Illinois'], Tech:['UIUC','Northwestern','Chicago','UIC','IIT'], Engineering:['UIUC','Northwestern','IIT','UIC'], 'Mental Health':['Northwestern','Chicago','UIUC','Loyola','Adler'], Trades:['City Colleges of Chicago','Lincoln Tech'], Education:['UIUC','Northwestern','Loyola','UIC'], Law:['Chicago','Northwestern (Pritzker)','UIUC','Loyola','Chicago-Kent'], Business:['Chicago (Booth)','Northwestern (Kellogg)','UIUC (Gies)'], Design:['SAIC','UIUC','Northwestern'], 'Public Safety':['Western Illinois','Illinois State'], Aviation:['UIUC','Lewis Univ.','SIU Carbondale'] },
+  IN: { Healthcare:['IU School of Medicine','Indiana','Purdue','Notre Dame','Univ. of Indianapolis'], Tech:['Purdue','Indiana','Notre Dame','Rose-Hulman'], Engineering:['Purdue','Notre Dame','Rose-Hulman','IUPUI'], 'Mental Health':['Indiana','Purdue','Notre Dame','Ball State'], Trades:['Ivy Tech CC','Vincennes'], Education:['Indiana','Purdue','Ball State','Indianapolis'], Law:['Notre Dame','Indiana (Maurer)','IU McKinney'], Business:['Indiana (Kelley)','Notre Dame (Mendoza)','Purdue (Mitch Daniels)'], Design:['Indiana','Herron (IUPUI)'], 'Public Safety':['Indiana State','Ball State'], Aviation:['Purdue','Indiana State'] },
+  IA: { Healthcare:['Univ. of Iowa','Iowa State','Des Moines Univ.'], Tech:['Iowa State','Iowa'], Engineering:['Iowa State','Iowa'], 'Mental Health':['Iowa','Iowa State','Drake'], Trades:['Des Moines Area CC','Kirkwood CC'], Education:['Iowa','Iowa State','UNI'], Law:['Iowa','Drake'], Business:['Iowa (Tippie)','Iowa State','Drake'], Design:['Iowa','Iowa State'], 'Public Safety':['UNI','Iowa State'], Aviation:['Iowa State','Univ. of Dubuque'] },
+  KS: { Healthcare:['KU Medical Center','Kansas State','Wichita State'], Tech:['Kansas','Kansas State','Wichita State'], Engineering:['Kansas','Kansas State','Wichita State'], 'Mental Health':['Kansas','Kansas State','Wichita State'], Trades:['Johnson County CC','Wichita Tech'], Education:['Kansas','Kansas State'], Law:['Kansas','Washburn'], Business:['Kansas','Kansas State'], Design:['Kansas','Kansas State'], 'Public Safety':['Wichita State','Washburn'], Aviation:['Kansas State Salina','Wichita State'] },
+  KY: { Healthcare:['Univ. of Kentucky','Univ. of Louisville','Bellarmine'], Tech:['Kentucky','Louisville'], Engineering:['Kentucky','Louisville'], 'Mental Health':['Kentucky','Louisville','Spalding'], Trades:['Jefferson CTC','BCTC'], Education:['Kentucky','Louisville','WKU'], Law:['Kentucky','Louisville (Brandeis)','Northern Kentucky'], Business:['Kentucky (Gatton)','Louisville'], Design:['Kentucky','Louisville'], 'Public Safety':['Eastern Kentucky','Louisville'], Aviation:['Eastern Kentucky','Western Kentucky'] },
+  LA: { Healthcare:['LSU Health (NO/Shreveport)','Tulane','Loyola NO'], Tech:['LSU','Tulane','Louisiana Tech'], Engineering:['LSU','Louisiana Tech','Tulane'], 'Mental Health':['LSU','Tulane','Loyola NO'], Trades:['Delgado CC','Baton Rouge CC'], Education:['LSU','Louisiana Tech','UL Lafayette'], Law:['LSU','Tulane','Loyola NO'], Business:['Tulane (Freeman)','LSU (Ourso)'], Design:['LSU','Tulane'], 'Public Safety':['Loyola NO','Southeastern LA'], Aviation:['Louisiana Tech','LSU Shreveport'] },
+  ME: { Healthcare:['Univ. of New England','Univ. of Southern Maine','Univ. of Maine'], Tech:['Univ. of Maine','Maine Maritime'], Engineering:['Univ. of Maine','Maine Maritime'], 'Mental Health':['Univ. of Maine','USM','UNE'], Trades:['SMCC','York County CC'], Education:['Univ. of Maine','USM'], Law:['Maine Law (USM)'], Business:['Univ. of Maine','USM'], Design:['Maine College of Art'], 'Public Safety':['USM','Univ. of Maine Augusta'], Aviation:['Univ. of Maine','SMCC'] },
+  MD: { Healthcare:['Johns Hopkins','Univ. of Maryland Baltimore','UMBC'], Tech:['Johns Hopkins','Maryland (College Park)','UMBC'], Engineering:['Maryland','Johns Hopkins','UMBC','Naval Academy'], 'Mental Health':['Johns Hopkins','Maryland','Loyola Maryland'], Trades:['Montgomery College','CCBC'], Education:['Maryland','Johns Hopkins','Towson'], Law:['Maryland (Carey)','Baltimore'], Business:['Maryland (Smith)','Johns Hopkins (Carey)'], Design:['MICA','Maryland'], 'Public Safety':['Maryland (College Park)','UMBC'], Aviation:['Maryland (College Park)'] },
+  MA: { Healthcare:['Harvard','Mass General Brigham','Boston Univ.','Northeastern','UMass Worcester','Tufts','MGH Institute'], Tech:['MIT','Harvard','Northeastern','BU','UMass Amherst','Olin','WPI'], Engineering:['MIT','Harvard','Northeastern','UMass Amherst','WPI','Tufts','Olin'], 'Mental Health':['Harvard','BU','BC','UMass','Tufts','William James'], Trades:['Bunker Hill CC','Benjamin Franklin Cummings'], Education:['Harvard','BU','BC','UMass'], Law:['Harvard','BU','BC','Northeastern','Suffolk'], Business:['Harvard','MIT (Sloan)','BU (Questrom)','BC (Carroll)'], Design:['MassArt','RISD (RI)','Harvard GSD'], 'Public Safety':['Northeastern','UMass Lowell'], Aviation:['Bridgewater State','UMass Amherst'] },
+  MI: { Healthcare:['Univ. of Michigan','Michigan State','Wayne State','Grand Valley State'], Tech:['Michigan','Michigan State','Michigan Tech','Wayne State'], Engineering:['Michigan','Michigan State','Michigan Tech','Kettering','Lawrence Tech'], 'Mental Health':['Michigan','Michigan State','Wayne State'], Trades:['Macomb CC','Washtenaw CC'], Education:['Michigan','Michigan State'], Law:['Michigan','Wayne State','MSU','Detroit Mercy'], Business:['Michigan (Ross)','MSU (Broad)'], Design:['College for Creative Studies','Michigan'], 'Public Safety':['Michigan State','Eastern Michigan'], Aviation:['Western Michigan','Eastern Michigan'] },
+  MN: { Healthcare:['Mayo Clinic','Univ. of Minnesota','Mayo Clinic Alix','St. Catherine'], Tech:['Minnesota','St. Thomas','Mayo'], Engineering:['Minnesota','St. Thomas'], 'Mental Health':['Minnesota','St. Thomas','St. Mary\'s'], Trades:['Dunwoody College of Tech','Hennepin Tech'], Education:['Minnesota','St. Thomas'], Law:['Minnesota','St. Thomas','Mitchell Hamline'], Business:['Minnesota (Carlson)','St. Thomas (Opus)'], Design:['Minnesota','MCAD'], 'Public Safety':['Minnesota State Mankato','Metropolitan State'], Aviation:['Minnesota State Mankato','St. Cloud State'] },
+  MS: { Healthcare:['UMMC','Univ. of Mississippi','Mississippi State'], Tech:['Mississippi State','Ole Miss','USM'], Engineering:['Mississippi State','Ole Miss'], 'Mental Health':['Ole Miss','Mississippi State','USM'], Trades:['Hinds CC','MS Gulf Coast CC'], Education:['Mississippi State','Ole Miss','USM'], Law:['Ole Miss','Mississippi College'], Business:['Ole Miss','Mississippi State'], Design:['Mississippi State','Ole Miss'], 'Public Safety':['USM','Mississippi State'], Aviation:['Delta State'] },
+  MO: { Healthcare:['Washington Univ. St. Louis','Saint Louis Univ.','Missouri','UMKC'], Tech:['Wash U','Missouri S&T','Missouri','SLU'], Engineering:['Missouri S&T','Wash U','Missouri','SLU'], 'Mental Health':['Wash U','Missouri','SLU'], Trades:['St. Louis CC','Ranken Tech'], Education:['Missouri','Missouri State','UMKC'], Law:['Wash U','Missouri','SLU','UMKC'], Business:['Wash U (Olin)','Missouri (Trulaske)','SLU (Chaifetz)'], Design:['Wash U (Sam Fox)','Missouri'], 'Public Safety':['Missouri State','UCM'], Aviation:['UCM','Saint Louis Univ.'] },
+  MT: { Healthcare:['Montana State','Univ. of Montana','Rocky Mountain College'], Tech:['Montana State','Montana Tech','Univ. of Montana'], Engineering:['Montana State','Montana Tech'], 'Mental Health':['Montana','Montana State'], Trades:['Helena College','Great Falls College'], Education:['Montana State','Montana'], Law:['Univ. of Montana'], Business:['Montana','Montana State'], Design:['Montana State','Montana'], 'Public Safety':['Montana','Montana State Billings'], Aviation:['Rocky Mountain College','Montana State'] },
+  NE: { Healthcare:['UNMC','Creighton','Nebraska Methodist','Nebraska-Lincoln'], Tech:['Nebraska-Lincoln','Creighton','Nebraska-Omaha'], Engineering:['Nebraska-Lincoln'], 'Mental Health':['Nebraska-Lincoln','Creighton','UNO'], Trades:['Metro CC (Omaha)','SCC'], Education:['Nebraska-Lincoln','UNO'], Law:['Nebraska','Creighton'], Business:['Nebraska (Heider)','Creighton'], Design:['Nebraska-Lincoln'], 'Public Safety':['UNO','Nebraska-Lincoln'], Aviation:['Nebraska-Lincoln','Nebraska-Omaha'] },
+  NV: { Healthcare:['UNLV','Univ. of Nevada Reno','Touro Nevada'], Tech:['UNR','UNLV'], Engineering:['UNR','UNLV'], 'Mental Health':['UNLV','UNR'], Trades:['CSN (Las Vegas)','TMCC (Reno)'], Education:['UNLV','UNR'], Law:['UNLV (Boyd)'], Business:['UNLV (Lee)','UNR'], Design:['UNLV','UNR'], 'Public Safety':['UNLV','UNR'], Aviation:['UNR','CSN'] },
+  NH: { Healthcare:['Dartmouth (Geisel)','UNH','SNHU'], Tech:['Dartmouth','UNH'], Engineering:['Dartmouth (Thayer)','UNH'], 'Mental Health':['Dartmouth','UNH','Antioch'], Trades:['Manchester CC','Great Bay CC'], Education:['UNH','SNHU','Plymouth State'], Law:['UNH Franklin Pierce'], Business:['Dartmouth (Tuck)','UNH (Paul)'], Design:['UNH','NHIA'], 'Public Safety':['UNH','SNHU'], Aviation:['Daniel Webster','UNH'] },
+  NJ: { Healthcare:['Rutgers (RBHS)','Princeton','Stevens','Seton Hall'], Tech:['Princeton','Rutgers','Stevens','NJIT'], Engineering:['Princeton','Rutgers','NJIT','Stevens'], 'Mental Health':['Rutgers','Princeton','Seton Hall'], Trades:['Bergen CC','Mercer County CC'], Education:['Rutgers','TCNJ','Montclair State'], Law:['Rutgers','Seton Hall'], Business:['Rutgers','Princeton','Stevens'], Design:['Rutgers (Mason Gross)','Pratt (nearby NY)'], 'Public Safety':['John Jay (nearby NY)','Rutgers'], Aviation:['Vaughn (nearby NY)','Rutgers'] },
+  NM: { Healthcare:['Univ. of New Mexico','New Mexico State'], Tech:['New Mexico Tech','UNM','NMSU'], Engineering:['NM Tech','NMSU','UNM'], 'Mental Health':['UNM','NMSU'], Trades:['CNM','SFCC'], Education:['UNM','NMSU'], Law:['UNM'], Business:['UNM (Anderson)','NMSU'], Design:['UNM','NMSU'], 'Public Safety':['NMSU','Eastern NM'], Aviation:['NM State','CNM'] },
+  NY: { Healthcare:['Columbia','NYU','Cornell (Weill)','Mount Sinai','Rochester','Stony Brook','Buffalo'], Tech:['Cornell','Columbia','NYU','RPI','Stony Brook','RIT','Syracuse'], Engineering:['Cornell','Columbia','RPI','NYU Tandon','Buffalo','Stony Brook'], 'Mental Health':['Columbia','NYU','Cornell','Fordham','Adelphi','Hofstra','Yeshiva (Ferkauf)'], Trades:['NYC College of Tech (CUNY)','Apex Tech','SUNY Delhi'], Education:['Columbia (TC)','NYU','Fordham','Hunter (CUNY)'], Law:['Columbia','NYU','Cornell','Fordham','Brooklyn Law'], Business:['Columbia','NYU (Stern)','Cornell (Johnson)','Fordham'], Design:['Pratt','Parsons','Cornell','RIT','Cooper Union','SVA'], 'Public Safety':['John Jay (CUNY)','SUNY Albany'], Aviation:['Vaughn College','Farmingdale State','Cornell'] },
+  NC: { Healthcare:['Duke','UNC Chapel Hill','Wake Forest','East Carolina','UNC Charlotte'], Tech:['Duke','UNC','NC State','UNC Charlotte'], Engineering:['NC State','Duke','UNC Charlotte','NC A&T'], 'Mental Health':['Duke','UNC','Wake Forest','NC State'], Trades:['Wake Tech CC','CPCC'], Education:['UNC','NC State','UNC Charlotte','ECU'], Law:['Duke','UNC','Wake Forest','NC Central'], Business:['Duke (Fuqua)','UNC (Kenan-Flagler)','Wake Forest','NC State (Poole)'], Design:['NC State','UNC Asheville','UNC Greensboro'], 'Public Safety':['NC State','ECU'], Aviation:['Elizabeth City State','NC State'] },
+  ND: { Healthcare:['Univ. of North Dakota','North Dakota State'], Tech:['NDSU','UND'], Engineering:['NDSU','UND'], 'Mental Health':['UND','NDSU'], Trades:['Bismarck State','NDSCS'], Education:['UND','NDSU'], Law:['UND'], Business:['UND','NDSU'], Design:['NDSU','UND'], 'Public Safety':['UND','NDSU'], Aviation:['UND (Aerospace) — one of the best in the U.S.','NDSU'] },
+  OH: { Healthcare:['Ohio State','Case Western','Cleveland Clinic','Cincinnati','Toledo'], Tech:['Ohio State','Case Western','Cincinnati'], Engineering:['Ohio State','Case Western','Cincinnati','Akron'], 'Mental Health':['Ohio State','Case Western','Cincinnati','Xavier'], Trades:['Columbus State CC','Cuyahoga CC'], Education:['Ohio State','Cincinnati','Ohio Univ.','Miami (OH)'], Law:['Ohio State (Moritz)','Case Western','Cincinnati','Ohio Northern'], Business:['Ohio State (Fisher)','Case Western (Weatherhead)','Cincinnati (Lindner)'], Design:['Cincinnati (DAAP)','Cleveland Inst. of Art','Columbus CCAD'], 'Public Safety':['Bowling Green','Toledo'], Aviation:['Ohio State','Kent State','Ohio Univ.'] },
+  OK: { Healthcare:['OU Health Sciences','Oklahoma State','Tulsa'], Tech:['OU','OSU','Tulsa'], Engineering:['OU','OSU','Tulsa'], 'Mental Health':['OU','OSU'], Trades:['Tulsa Tech','Francis Tuttle','OSU-IT'], Education:['OU','OSU','UCO'], Law:['OU','OSU (Riata)','Tulsa'], Business:['OU (Price)','OSU (Spears)','Tulsa (Collins)'], Design:['OU','OSU'], 'Public Safety':['UCO','East Central'], Aviation:['OSU','OU','Spartan College of Aero'] },
+  OR: { Healthcare:['OHSU','Oregon State','Oregon','Pacific Univ.'], Tech:['Oregon State','Oregon','Portland State','Oregon Tech'], Engineering:['Oregon State','Portland State','Oregon Tech'], 'Mental Health':['Oregon','OHSU','Lewis & Clark','Pacific'], Trades:['Portland CC','Lane CC'], Education:['Oregon','Oregon State','Portland State'], Law:['Oregon','Lewis & Clark','Willamette'], Business:['Oregon (Lundquist)','Oregon State','Portland State'], Design:['Oregon','PNCA'], 'Public Safety':['Portland State','Western Oregon'], Aviation:['Oregon Tech','Portland CC'] },
+  PA: { Healthcare:['Penn','Pitt','Penn State','Jefferson','Temple','Drexel','Villanova'], Tech:['Carnegie Mellon','Penn','Penn State','Pitt','Lehigh','Drexel'], Engineering:['Carnegie Mellon','Penn','Penn State','Pitt','Lehigh','Drexel','Bucknell'], 'Mental Health':['Penn','Pitt','Penn State','Drexel','Temple','La Salle'], Trades:['Triangle Tech','PA College of Tech'], Education:['Penn (GSE)','Pitt','Penn State','Temple'], Law:['Penn (Carey)','Pitt','Penn State (Dickinson/Carlisle)','Temple','Villanova','Drexel'], Business:['Penn (Wharton)','Carnegie Mellon (Tepper)','Penn State (Smeal)','Pitt (Katz)','Lehigh'], Design:['CMU','Penn (Weitzman)','Drexel','Tyler (Temple)'], 'Public Safety':['Penn State','IUP'], Aviation:['Penn State','PA College of Tech','Bucks County CC'] },
+  RI: { Healthcare:['Brown','Univ. of Rhode Island','Rhode Island College'], Tech:['Brown','URI'], Engineering:['Brown','URI'], 'Mental Health':['Brown','URI','Providence College'], Trades:['Community College of RI','New England Tech'], Education:['URI','Rhode Island College','Providence'], Law:['Roger Williams'], Business:['Bryant','URI','Brown'], Design:['RISD','Brown','New England Tech'], 'Public Safety':['Roger Williams','URI'], Aviation:['Community College of RI'] },
+  SC: { Healthcare:['MUSC','Univ. of South Carolina','Clemson','Furman'], Tech:['Clemson','South Carolina','Charleston'], Engineering:['Clemson','South Carolina'], 'Mental Health':['South Carolina','Clemson','MUSC'], Trades:['Greenville Tech','Trident Tech'], Education:['South Carolina','Clemson','Winthrop'], Law:['South Carolina','Charleston Law'], Business:['South Carolina (Moore)','Clemson','Furman'], Design:['Clemson','South Carolina'], 'Public Safety':['South Carolina','Clemson'], Aviation:['Clemson','SC State','Trident Tech'] },
+  SD: { Healthcare:['Univ. of South Dakota','South Dakota State'], Tech:['South Dakota Mines','SDSU','USD'], Engineering:['SD Mines','SDSU'], 'Mental Health':['USD','SDSU'], Trades:['Lake Area Tech','Mitchell Tech'], Education:['USD','SDSU'], Law:['USD'], Business:['USD (Beacom)','SDSU'], Design:['SDSU','USD'], 'Public Safety':['USD','SDSU'], Aviation:['SDSU','Lake Area Tech'] },
+  TN: { Healthcare:['Vanderbilt','UT Health Science Center','Belmont','East Tennessee State'], Tech:['Vanderbilt','UT Knoxville','Tennessee Tech','Memphis'], Engineering:['Vanderbilt','UT Knoxville','Tennessee Tech'], 'Mental Health':['Vanderbilt','UT Knoxville','Memphis','Belmont'], Trades:['TCAT (multi-campus)','Pellissippi State'], Education:['Vanderbilt (Peabody) — top-ranked','UT Knoxville','Memphis'], Law:['Vanderbilt','UT Knoxville','Memphis (Humphreys)','Belmont'], Business:['Vanderbilt (Owen)','UT Knoxville (Haslam)'], Design:['UT Knoxville','MTSU'], 'Public Safety':['East Tennessee State','MTSU'], Aviation:['MTSU (aerospace)','UT Martin'] },
+  TX: { Healthcare:['UT Southwestern','Baylor College of Medicine','UT Health Houston','UTMB Galveston','TAMU Health','Texas Health Science Center San Antonio','TCU/Burnett','UT Austin (BSN)'], Tech:['UT Austin','Texas A&M','Rice','UT Dallas','UTSA','UT Arlington'], Engineering:['UT Austin (Cockrell)','Texas A&M','Rice','UT Dallas','UTSA','TTU'], 'Mental Health':['UT Austin','Texas A&M','UH','Baylor','SMU'], Trades:['Houston CC','Austin CC','Dallas College','TSTC (Texas State Technical College)'], Education:['UT Austin','Texas A&M','TAMU-Central Texas','UH','Texas State'], Law:['UT Austin','Texas A&M','Baylor','SMU (Dedman)','Houston','TTU'], Business:['UT Austin (McCombs)','Texas A&M (Mays)','Rice (Jones)','SMU (Cox)','TAMU-Central Texas (MBA)','UH (Bauer)'], Design:['UT Austin','Texas A&M','Rice','SCAD-related'], 'Public Safety':['Sam Houston State (criminal justice — top)','UT San Antonio','TAMU-Central Texas'], Aviation:['LeTourneau','UT Arlington','Texas State'] },
+  UT: { Healthcare:['Univ. of Utah','BYU','Utah Valley'], Tech:['Utah','BYU','Utah State'], Engineering:['Utah','BYU','Utah State'], 'Mental Health':['Utah','BYU','Westminster'], Trades:['Salt Lake CC','Ogden-Weber Tech'], Education:['Utah','BYU','Utah State'], Law:['Utah','BYU'], Business:['Utah (Eccles)','BYU (Marriott)'], Design:['Utah','BYU'], 'Public Safety':['Utah Valley','Weber State'], Aviation:['Utah Valley','Utah State'] },
+  VT: { Healthcare:['Univ. of Vermont','Norwich'], Tech:['UVM','Norwich','Champlain'], Engineering:['UVM','Norwich'], 'Mental Health':['UVM','Saint Michael\'s'], Trades:['CCV','Vermont Tech'], Education:['UVM','Saint Michael\'s','Castleton'], Law:['Vermont Law'], Business:['UVM (Grossman)','Champlain'], Design:['Champlain','UVM'], 'Public Safety':['Norwich','UVM'], Aviation:['Vermont Tech','UVM'] },
+  VA: { Healthcare:['UVA','VCU','Virginia Tech (VTCSOM)','Eastern Virginia','George Mason'], Tech:['Virginia Tech','UVA','George Mason','William & Mary'], Engineering:['Virginia Tech','UVA','George Mason','VCU','ODU'], 'Mental Health':['UVA','VCU','Virginia Tech','William & Mary','George Mason'], Trades:['NOVA CC','Tidewater CC'], Education:['UVA','William & Mary','Virginia Tech','George Mason'], Law:['UVA','William & Mary','Washington and Lee','George Mason','Richmond'], Business:['UVA (Darden, McIntire)','William & Mary (Mason)','Virginia Tech (Pamplin)','George Mason'], Design:['VCU (Arts — top public)','UVA'], 'Public Safety':['George Mason','VCU'], Aviation:['Hampton','Liberty'] },
+  WA: { Healthcare:['Univ. of Washington','Washington State','Seattle U.','Gonzaga'], Tech:['Univ. of Washington','Washington State','WSU Tri-Cities'], Engineering:['Univ. of Washington','Washington State','Seattle U.'], 'Mental Health':['UW','Seattle U.','Antioch Seattle','WSU'], Trades:['Lake Washington Tech','Bates Tech','Renton Tech'], Education:['UW','Washington State','WWU'], Law:['UW','Gonzaga','Seattle U.'], Business:['UW (Foster)','WSU (Carson)','Seattle U. (Albers)'], Design:['UW','Cornish'], 'Public Safety':['WSU','Central Washington'], Aviation:['Central Washington','WSU'] },
+  WV: { Healthcare:['WVU','Marshall'], Tech:['WVU','Marshall','WV Tech'], Engineering:['WVU','WV Tech'], 'Mental Health':['WVU','Marshall'], Trades:['BridgeValley CTC','Pierpont CTC'], Education:['WVU','Marshall'], Law:['WVU'], Business:['WVU','Marshall'], Design:['WVU','Marshall'], 'Public Safety':['Marshall','WVU'], Aviation:['Marshall','Salem Univ.'] },
+  WI: { Healthcare:['Wisconsin-Madison','Medical College of Wisconsin','Marquette','Wisconsin-Milwaukee'], Tech:['Wisconsin-Madison','Marquette','Milwaukee School of Engineering','UW-Milwaukee'], Engineering:['Wisconsin-Madison','MSOE','Marquette','UW-Milwaukee','UW-Platteville'], 'Mental Health':['Wisconsin-Madison','Marquette','UW-Milwaukee'], Trades:['Madison College','Milwaukee Area Tech','Fox Valley Tech'], Education:['Wisconsin-Madison','UW-Milwaukee','UW-Eau Claire'], Law:['Wisconsin-Madison','Marquette'], Business:['Wisconsin-Madison','Marquette'], Design:['Wisconsin-Madison','MIAD'], 'Public Safety':['UW-Platteville','UW-Milwaukee'], Aviation:['UW-Oshkosh','Fox Valley Tech'] },
+  WY: { Healthcare:['Univ. of Wyoming'], Tech:['Univ. of Wyoming'], Engineering:['Univ. of Wyoming'], 'Mental Health':['Univ. of Wyoming'], Trades:['Casper College','Laramie County CC'], Education:['Univ. of Wyoming'], Law:['Univ. of Wyoming'], Business:['Univ. of Wyoming'], Design:['Univ. of Wyoming'], 'Public Safety':['Univ. of Wyoming','LCCC'], Aviation:['Univ. of Wyoming','Casper College'] },
+  DC: { Healthcare:['Georgetown','GWU','Howard'], Tech:['Georgetown','GWU','Howard','American'], Engineering:['Catholic Univ.','GWU','Howard'], 'Mental Health':['GWU','Georgetown','American','Howard'], Trades:['UDC CC'], Education:['George Washington','Georgetown','American','Howard'], Law:['Georgetown','GWU','American','Howard','Catholic'], Business:['Georgetown (McDonough)','GWU','American (Kogod)'], Design:['Corcoran (GWU)'], 'Public Safety':['George Washington','American'], Aviation:['Howard','Catholic'] }
+};
+
+const US_STATES = [
+  ['AL','Alabama'],['AK','Alaska'],['AZ','Arizona'],['AR','Arkansas'],['CA','California'],
+  ['CO','Colorado'],['CT','Connecticut'],['DE','Delaware'],['DC','District of Columbia'],
+  ['FL','Florida'],['GA','Georgia'],['HI','Hawaii'],['ID','Idaho'],['IL','Illinois'],
+  ['IN','Indiana'],['IA','Iowa'],['KS','Kansas'],['KY','Kentucky'],['LA','Louisiana'],
+  ['ME','Maine'],['MD','Maryland'],['MA','Massachusetts'],['MI','Michigan'],['MN','Minnesota'],
+  ['MS','Mississippi'],['MO','Missouri'],['MT','Montana'],['NE','Nebraska'],['NV','Nevada'],
+  ['NH','New Hampshire'],['NJ','New Jersey'],['NM','New Mexico'],['NY','New York'],['NC','North Carolina'],
+  ['ND','North Dakota'],['OH','Ohio'],['OK','Oklahoma'],['OR','Oregon'],['PA','Pennsylvania'],
+  ['RI','Rhode Island'],['SC','South Carolina'],['SD','South Dakota'],['TN','Tennessee'],['TX','Texas'],
+  ['UT','Utah'],['VT','Vermont'],['VA','Virginia'],['WA','Washington'],['WV','West Virginia'],
+  ['WI','Wisconsin'],['WY','Wyoming']
+];
+
+const INTERESTS = [
+  ['health','Healthcare'],['helping','Helping people'],['tech','Technology'],
+  ['math','Math'],['science','Science'],['psychology','Psychology'],
+  ['building','Building things'],['business','Business'],['language','Language/Writing'],
+  ['policy','Policy/Law'],['creative','Creative/Design'],['animals','Animals'],
+  ['sports','Sports/Movement'],['problem-solving','Problem-solving'],['hands-on','Hands-on work'],
+  ['travel','Travel']
+];
+
+const STYLES = [
+  ['people','With people'],['hands-on','Hands-on / physical'],['technical','Technical / computer'],['creative','Creative']
+];
+
+/* ─── UI ─── */
+const $ = (id) => document.getElementById(id);
+
+function init() {
+  const stateSel = $('state');
+  US_STATES.forEach(([code, name]) => {
+    const opt = document.createElement('option');
+    opt.value = code; opt.textContent = name;
+    if (code === 'TX') opt.selected = true;
+    stateSel.appendChild(opt);
+  });
+
+  const interestsBox = $('interests');
+  INTERESTS.forEach(([val, label]) => {
+    const c = document.createElement('div');
+    c.className = 'chip'; c.dataset.value = val; c.textContent = label;
+    c.onclick = () => {
+      const onCount = interestsBox.querySelectorAll('.chip.on').length;
+      if (!c.classList.contains('on') && onCount >= 3) return;
+      c.classList.toggle('on');
+    };
+    interestsBox.appendChild(c);
+  });
+
+  const styleBox = $('style');
+  STYLES.forEach(([val, label]) => {
+    const c = document.createElement('div');
+    c.className = 'chip'; c.dataset.value = val; c.textContent = label;
+    c.onclick = () => c.classList.toggle('on');
+    styleBox.appendChild(c);
+  });
+
+  $('pay').oninput = e => $('payVal').textContent = e.target.value;
+  $('safe').oninput = e => $('safeVal').textContent = e.target.value;
+
+  $('go').onclick = run;
+  $('restart').onclick = () => {
+    $('results').classList.remove('show');
+    $('quiz').scrollIntoView({behavior:'smooth'});
+  };
+  $('print').onclick = () => window.print();
+}
+
+function getSelected(boxId) {
+  return Array.from(document.querySelectorAll(`#${boxId} .chip.on`)).map(c => c.dataset.value);
+}
+
+function fmtMoney(n) {
+  return '$' + n.toLocaleString();
+}
+
+function scoreDegree(d, ans) {
+  const interestOverlap = d.interests.filter(i => ans.interests.includes(i)).length;
+  const styleOverlap = d.style.filter(s => ans.style.includes(s)).length;
+  const stemFit = (
+    (ans.stem === 'low'  && d.stem === 'low')  ? 2 :
+    (ans.stem === 'med'  && d.stem !== 'high') ? 1.5 :
+    (ans.stem === 'high')                      ? 2 :
+    (ans.stem === 'med'  && d.stem === 'high') ? 1 : 0
+  );
+  const yearsFit = (d.years <= ans.years) ? 1.5 : (d.years <= ans.years + 2 ? 0.5 : -1);
+
+  // normalized weights from sliders (1..5 → 0.2..1.0)
+  const wPay  = ans.pay / 5;
+  const wSafe = ans.safe / 5;
+
+  // pay score: median scaled 0..1 at $200k cap
+  const payScore  = Math.min(d.medianSalary / 150000, 1.6);
+  const safeScore = d.aiResistance / 100;
+
+  return (
+    interestOverlap * 2.5 +
+    styleOverlap    * 1.8 +
+    stemFit                +
+    yearsFit               +
+    payScore  * wPay  * 5  +
+    safeScore * wSafe * 6
+  );
+}
+
+function categoryForSchools(d) {
+  // map degree category → state-programs key
+  const map = {
+    Healthcare: 'Healthcare', 'Mental Health': 'Mental Health',
+    Tech: 'Tech', Engineering: 'Engineering', Trades: 'Trades',
+    Education: 'Education', Law: 'Law', Business: 'Business',
+    Design: 'Design', 'Public Safety': 'Public Safety', Aviation: 'Aviation'
+  };
+  return map[d.category] || 'Healthcare';
+}
+
+function run() {
+  const ans = {
+    state: $('state').value,
+    interests: getSelected('interests'),
+    style: getSelected('style'),
+    pay: +$('pay').value,
+    safe: +$('safe').value,
+    years: +$('years').value,
+    stem: $('stem').value
+  };
+
+  // If they pick nothing, score everything neutrally on pay+safe
+  const scored = DEGREES.map(d => ({ d, score: scoreDegree(d, ans) }))
+    .sort((a, b) => b.score - a.score);
+
+  const top = scored.slice(0, 6);
+  const stateName = US_STATES.find(([c]) => c === ans.state)[1];
+  $('resultsTitle').textContent = `Your top matches in ${stateName}`;
+
+  const out = $('matches');
+  out.innerHTML = '';
+  top.forEach(({ d, score }, idx) => {
+    const cat = categoryForSchools(d);
+    const stateProgs = (STATE_PROGRAMS[ans.state] && STATE_PROGRAMS[ans.state][cat]) || [];
+    const schoolsHtml = stateProgs.length
+      ? stateProgs.map(s => `• ${s}`).join('<br>')
+      : `Top programs in ${stateName} weren\'t in our curated list for this category — check accredited public flagships (e.g., your state university) and nearby private options.`;
+
+    const el = document.createElement('div');
+    el.className = 'match' + (idx === 0 ? ' rank1' : '');
+    el.innerHTML = `
+      <div class="match-head">
+        <div>
+          <div class="match-title">${idx + 1}. ${d.name}</div>
+          <div class="match-cat">${d.category} • ${d.years} years of study</div>
+        </div>
+      </div>
+      <div class="badges">
+        <span class="badge ai">🛡 ${d.aiResistance}% AI-resistant</span>
+        <span class="badge pay">💰 ${fmtMoney(d.medianSalary)} median · up to ${fmtMoney(d.topPay)}</span>
+        <span class="badge grow">📈 ${d.growth >= 0 ? '+' : ''}${d.growth}% job growth (10yr)</span>
+      </div>
+      <div class="meter"><div style="width:${d.aiResistance}%"></div></div>
+      <p><strong>Why it survives AI:</strong> ${d.why}</p>
+      <p class="careers"><strong>Career paths:</strong> ${d.careers.join(' · ')}</p>
+      <div class="schools">
+        <div class="schools-head">🎓 Top programs in ${stateName}</div>
+        <div class="schools-list">${schoolsHtml}</div>
+      </div>
+    `;
+    out.appendChild(el);
+  });
+
+  $('results').classList.add('show');
+  $('results').scrollIntoView({ behavior: 'smooth' });
+}
+
+init();
+</script>
+</body>
+</html>
