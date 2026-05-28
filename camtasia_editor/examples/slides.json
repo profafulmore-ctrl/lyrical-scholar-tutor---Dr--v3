@@ -1,0 +1,9 @@
+{
+  "slides": [
+    {"image": "01-title.png",          "cue": "welcome to managerial accounting"},
+    {"image": "02-cvp-overview.png",   "cue": "cost volume profit analysis"},
+    {"image": "03-break-even.png",     "cue": "break even point is reached when"},
+    {"image": "04-contribution.png",   "cue": "contribution margin"},
+    {"image": "05-summary.png",        "cue": "to summarize"}
+  ]
+}

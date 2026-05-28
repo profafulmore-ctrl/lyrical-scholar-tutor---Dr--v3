@@ -1,0 +1,7 @@
+{
+  "clips": [
+    {"file": "pizza-shop.mp4",  "keywords": ["pizza", "restaurant", "menu"]},
+    {"file": "chart-up.mp4",    "keywords": ["profit", "growth", "increase"]},
+    {"file": "calculator.mp4",  "keywords": ["calculate", "compute", "formula"]}
+  ]
+}
