@@ -33,6 +33,10 @@ in how it was governed.
 # Financial Crisis
 
 [slide: 03.png]
+[zoom]
+[cut]
+Sorry, let me restate that — bad take, ignore this sentence entirely.
+[/cut]
 The monarchy was effectively bankrupt. Years of war — including French support for
 the American Revolution — had drained the treasury. [pause 0.5s] When the king tried
 to tax the nobility, they refused, and the crisis became unstoppable.

@@ -89,6 +89,23 @@ Optional per-lecture files:
 Outputs land in `lectures/<id>/build/`: `audio/`, `avatar/`, `renders/`,
 `final.mp4`, `transcript.txt`, `chapters.txt`, `shownotes.md`, `metadata.json`.
 
+## Automated final edits
+
+The deterministic parts of "final edits and cuts" — the ones that don't need a
+human eye — are built in:
+
+| Edit | How |
+|------|-----|
+| **Tighten pace** | `--max-pause 0.8` caps `[pause]` markers (safe for TTS; trimming real silence would desync the avatar's lips) |
+| **Cut sections / bad takes** | wrap them in `[cut] … [/cut]` in `script.md` — removed everywhere (voice, avatar, captions) |
+| **Captions** | `captions` command → `captions.srt`, exactly synced (your TTS *is* the transcript). Sidecar by default; set `"captions": true` in `edl.json` to burn into `final.mp4` |
+| **B-roll** | `[broll: clip.mp4]` per scene |
+| **Zoom / emphasis** | `[zoom]` on a scene (or `SLIDE_ZOOM=true` / `"zoom": true` globally) → gentle Ken Burns on that slide |
+
+What still needs *you*: the taste calls — which exact moment to punch in on, comedic/
+dramatic timing, "this part drags." The pipeline gives you the mechanisms and a
+clean, captioned, paced cut; you make the judgment calls in Premiere.
+
 ## Notes & limits
 
 - **Avatar voice** uses HeyGen's "audio" voice mode, so the talking head lip-syncs

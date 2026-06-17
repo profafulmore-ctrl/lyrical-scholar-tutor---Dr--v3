@@ -26,6 +26,7 @@ import { synthesizeScene } from './lib/elevenlabs.mjs';
 import { renderSceneAvatar } from './lib/heygen.mjs';
 import { assembleLecture } from './lib/assemble.mjs';
 import { exportPremiere } from './lib/premiere.mjs';
+import { exportSRT } from './lib/captions.mjs';
 import { generateMetadata } from './lib/anthropic.mjs';
 
 loadEnv();
@@ -63,9 +64,11 @@ const stripBreaks = (t) => t.replace(/<break[^>]*\/>/g, ' ').replace(/\s+/g, ' '
 // ---------------------------------------------------------------------------
 // Commands
 // ---------------------------------------------------------------------------
-async function cmdPrep(ctx) {
+async function cmdPrep(ctx, flags = {}) {
   log.step(`Prep: parsing ${path.relative(process.cwd(), ctx.scriptPath)}`);
-  const manifest = parseScript(ctx.scriptPath);
+  const maxPause = flags['max-pause'] ? Number(flags['max-pause']) : 0;
+  if (maxPause) log.dim(`capping pauses at ${maxPause}s (tighten pace)`);
+  const manifest = parseScript(ctx.scriptPath, { maxPause });
   ensureDir(ctx.buildDir);
   writeJSON(path.join(ctx.buildDir, 'manifest.json'), manifest);
   const transcript = manifest.scenes.map((s) => stripBreaks(s.text)).join('\n\n');
@@ -162,6 +165,18 @@ async function cmdProject(ctx, flags) {
   return manifest;
 }
 
+async function cmdCaptions(ctx) {
+  const manifest = loadManifest(ctx);
+  log.step('Captions: building synced SRT');
+  if (!manifest.scenes.some((s) => s.durationSec)) {
+    log.warn("No scene durations — run 'voice' first so captions can be timed.");
+  }
+  const out = exportSRT(manifest, ctx.buildDir);
+  log.ok(`captions.srt (${manifest.scenes.length} scenes) -> ${path.relative(process.cwd(), out)}`);
+  log.dim('Use as a sidecar (YouTube/Premiere/Camtasia), or set "captions": true in edl.json to burn in.');
+  return manifest;
+}
+
 async function cmdShownotes(ctx) {
   const manifest = loadManifest(ctx);
   log.step('Show notes: chapters + metadata');
@@ -215,8 +230,9 @@ async function cmdDoctor() {
 }
 
 async function cmdAll(ctx, flags) {
-  await cmdPrep(ctx);
+  await cmdPrep(ctx, flags);
   await cmdVoice(ctx, flags);
+  await cmdCaptions(ctx);
   await cmdAvatar(ctx, flags);
   await cmdAssemble(ctx, flags);
   await cmdProject(ctx, flags);
@@ -227,10 +243,17 @@ async function cmdAll(ctx, flags) {
 // ---------------------------------------------------------------------------
 const HELP = `lecture-video pipeline
 
-  node pipeline/lecture.mjs <command> --lecture <id> [--force] [--dry-run] [--skip-avatar] [--target premiere]
+  node pipeline/lecture.mjs <command> --lecture <id> [--force] [--dry-run] [--skip-avatar] [--target premiere] [--max-pause 0.8]
 
-commands: prep | voice | avatar | assemble | project | shownotes | all | doctor
-  project   export an editable Premiere timeline (FCP7 XML): V1 slides/b-roll, V2 avatar PiP, A1 voiceover`;
+commands: prep | voice | captions | avatar | assemble | project | shownotes | all | doctor
+  captions  build a synced captions.srt (exact, since the voice is TTS of your script)
+  project   export an editable Premiere timeline (FCP7 XML): V1 slides/b-roll, V2 avatar PiP, A1 voiceover
+
+edit controls:
+  --max-pause <sec>   cap [pause] markers to tighten pace
+  [cut]…[/cut]        in script.md: drop marked sections / bad takes
+  [zoom] / SLIDE_ZOOM=true or "zoom":true in edl.json   gentle Ken Burns on slides
+  "captions": true in edl.json   burn captions into final.mp4`;
 
 async function main() {
   const { _: positional, flags } = parseArgs(process.argv.slice(2));
@@ -242,11 +265,12 @@ async function main() {
   if (!exists(ctx.scriptPath)) { log.err(`No script.md found at ${ctx.dir}`); process.exit(1); }
 
   switch (command) {
-    case 'prep': return void (await cmdPrep(ctx));
+    case 'prep': return void (await cmdPrep(ctx, flags));
     case 'voice': return void (await cmdVoice(ctx, flags));
     case 'avatar': return void (await cmdAvatar(ctx, flags));
     case 'assemble': return void (await cmdAssemble(ctx, flags));
     case 'project': return void (await cmdProject(ctx, flags));
+    case 'captions': return void (await cmdCaptions(ctx));
     case 'shownotes': return void (await cmdShownotes(ctx));
     case 'all': return cmdAll(ctx, flags);
     default: log.err(`Unknown command '${command}'.`); console.log(HELP); process.exit(1);

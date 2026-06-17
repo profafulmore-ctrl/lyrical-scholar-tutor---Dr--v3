@@ -19,6 +19,7 @@ import fs from 'node:fs';
 const PAUSE_RE = /\[pause\s+([0-9.]+)\s*s?\]/gi;
 const BROLL_RE = /^\[broll:\s*([^\]]+)\]\s*$/i;
 const SLIDE_RE = /^\[slide:\s*([^\]]+)\]\s*$/i;
+const ZOOM_RE = /^\[zoom\]\s*$/i;
 const SCENE_RE = /^##\s*scene:\s*(.*)$/i;
 const HEADING_RE = /^(#{1,6})\s+(.*)$/;
 
@@ -39,12 +40,24 @@ function parseFrontmatter(text) {
   return { meta, body };
 }
 
-// Convert authoring pause markers into ElevenLabs break tags.
-const applyPauses = (s) => s.replace(PAUSE_RE, (_, sec) => `<break time="${parseFloat(sec).toFixed(1)}s" />`);
+// Convert authoring pause markers into ElevenLabs break tags, capping the
+// duration at maxPause seconds when set (a safe way to "tighten pace" for TTS —
+// trimming real silence from rendered video would desync the avatar's lips).
+const applyPauses = (s, maxPause) =>
+  s.replace(PAUSE_RE, (_, sec) => {
+    let v = parseFloat(sec);
+    if (maxPause && v > maxPause) v = maxPause;
+    return `<break time="${v.toFixed(1)}s" />`;
+  });
 
-export function parseScript(filePath) {
+// Remove [cut]...[/cut] blocks (marked bad takes / sections to drop). Spans lines.
+const stripCuts = (s) => s.replace(/\[cut\][\s\S]*?\[\/cut\]/gi, '');
+
+export function parseScript(filePath, { maxPause = 0 } = {}) {
   const raw = fs.readFileSync(filePath, 'utf8');
-  const { meta, body } = parseFrontmatter(raw);
+  const fm = parseFrontmatter(raw);
+  const meta = fm.meta;
+  const body = stripCuts(fm.body);
 
   const scenes = [];
   let current = null;
@@ -53,7 +66,7 @@ export function parseScript(filePath) {
 
   const startScene = () => {
     if (current && current.lines.join('').trim()) scenes.push(current);
-    current = { name: sceneName, chapter, lines: [], broll: [], slide: null };
+    current = { name: sceneName, chapter, lines: [], broll: [], slide: null, zoom: false };
     sceneName = '';
   };
   startScene();
@@ -74,6 +87,7 @@ export function parseScript(filePath) {
     if (broll) { current.broll.push(broll[1].trim()); continue; }
     const slide = trimmed.match(SLIDE_RE);
     if (slide) { current.slide = slide[1].trim(); continue; }
+    if (ZOOM_RE.test(trimmed)) { current.zoom = true; continue; }
 
     current.lines.push(line);
   }
@@ -82,7 +96,7 @@ export function parseScript(filePath) {
   // Finalize: build clean spoken text per scene
   const finalScenes = scenes
     .map((s, i) => {
-      const text = applyPauses(s.lines.join('\n')).replace(/\n{3,}/g, '\n\n').trim();
+      const text = applyPauses(s.lines.join('\n'), maxPause).replace(/\n{3,}/g, '\n\n').trim();
       return {
         index: i + 1,
         id: String(i + 1).padStart(2, '0'),
@@ -90,6 +104,7 @@ export function parseScript(filePath) {
         chapter: s.chapter,
         slide: s.slide,
         broll: s.broll,
+        zoom: s.zoom,
         text,
         charCount: text.length,
       };

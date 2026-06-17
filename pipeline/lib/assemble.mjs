@@ -52,7 +52,18 @@ async function renderScene(scene, buildDir, cfg) {
   args.push('-i', audio);
 
   const fc = [];
-  fc.push(`[${bgIdx}:v]scale=${width}:${height}:force_original_aspect_ratio=increase,crop=${width}:${height},fps=${fps},format=yuv420p,setsar=1[bg]`);
+  const isSlideBg = !broll && !!slide;
+  const wantZoom = (cfg.zoom || scene.zoom) && isSlideBg;
+  if (wantZoom) {
+    // Gentle Ken Burns on static slides for visual energy (emphasis mechanism).
+    const frames = Math.max(1, Math.round((dur || 6) * fps));
+    fc.push(
+      `[${bgIdx}:v]scale=${Math.round(width * 1.15)}:-2,` +
+      `zoompan=z='min(zoom+0.0004,1.12)':d=${frames}:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':s=${width}x${height}:fps=${fps},` +
+      `format=yuv420p,setsar=1[bg]`);
+  } else {
+    fc.push(`[${bgIdx}:v]scale=${width}:${height}:force_original_aspect_ratio=increase,crop=${width}:${height},fps=${fps},format=yuv420p,setsar=1[bg]`);
+  }
   let lastV = '[bg]';
   if (hasAvatar) {
     const aw = Math.round(avatarScale * width / 2) * 2; // even width
@@ -87,6 +98,8 @@ export async function assembleLecture(buildDir, manifest, opts = {}) {
     bgColor: opts.bgColor || process.env.BG_COLOR || '0x101418',
     preset: opts.preset || 'medium',
     crf: opts.crf || 20,
+    zoom: opts.zoom ?? (process.env.SLIDE_ZOOM === 'true'),
+    captions: opts.captions ?? false,
     dryRun: !!opts.dryRun,
   };
   if (!POS[cfg.avatarPosition]) throw new Error(`Unknown avatar position '${cfg.avatarPosition}'. Use one of: ${Object.keys(POS).join(', ')}`);
@@ -98,12 +111,27 @@ export async function assembleLecture(buildDir, manifest, opts = {}) {
   }
   if (cfg.dryRun) { log.warn('dry-run: printed commands only, no files written'); return null; }
 
-  const body = path.join(buildDir, 'final.mp4');
   // Optional intro/outro stitched around the body.
   const intro = resolveAsset(buildDir, 'assets', 'intro.mp4');
   const outro = resolveAsset(buildDir, 'assets', 'outro.mp4');
   const sequence = [intro, ...sceneFiles, outro].filter(Boolean);
+
+  const captionsPath = path.join(buildDir, 'captions.srt');
+  const burn = cfg.captions && exists(captionsPath);
+  const body = path.join(buildDir, burn ? 'final.nosub.mp4' : 'final.mp4');
   await concatMedia(sequence, body, { reencode: true });
+
+  if (burn) {
+    // Burn the SRT onto the concatenated timeline (its timings are global).
+    const final = path.join(buildDir, 'final.mp4');
+    const esc = captionsPath.replace(/\\/g, '\\\\').replace(/:/g, '\\:').replace(/'/g, "\\'");
+    await run('ffmpeg', ['-y', '-i', body, '-vf', `subtitles='${esc}'`,
+      '-c:v', 'libx264', '-preset', cfg.preset, '-crf', String(cfg.crf), '-pix_fmt', 'yuv420p',
+      '-c:a', 'copy', final], { quiet: true });
+    fs.rmSync(body, { force: true });
+    log.ok(`final cut (captions burned in): ${final}`);
+    return final;
+  }
   log.ok(`final cut: ${body}`);
   return body;
 }
