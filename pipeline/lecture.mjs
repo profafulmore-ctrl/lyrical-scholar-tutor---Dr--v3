@@ -25,6 +25,7 @@ import { parseScript } from './lib/script.mjs';
 import { synthesizeScene } from './lib/elevenlabs.mjs';
 import { renderSceneAvatar } from './lib/heygen.mjs';
 import { assembleLecture } from './lib/assemble.mjs';
+import { exportPremiere } from './lib/premiere.mjs';
 import { generateMetadata } from './lib/anthropic.mjs';
 
 loadEnv();
@@ -135,6 +136,32 @@ async function cmdAssemble(ctx, flags) {
   return manifest;
 }
 
+function assemblyConfig(ctx) {
+  const edlPath = path.join(ctx.dir, 'edl.json');
+  const opts = exists(edlPath) ? readJSON(edlPath) : {};
+  return {
+    width: opts.width || 1920,
+    height: opts.height || 1080,
+    fps: opts.fps || 30,
+    avatarScale: opts.avatarScale ?? Number(process.env.AVATAR_SCALE || 0.28),
+    avatarPosition: opts.avatarPosition || process.env.AVATAR_POSITION || 'bottom-right',
+    margin: opts.margin ?? Number(process.env.AVATAR_MARGIN || 40),
+  };
+}
+
+async function cmdProject(ctx, flags) {
+  const manifest = loadManifest(ctx);
+  const target = (flags.target || 'premiere').toString().toLowerCase();
+  if (target !== 'premiere') { log.err(`Unsupported --target '${target}'. Supported: premiere.`); process.exit(1); }
+  log.step('Project: exporting an editable Premiere (FCP7 XML) timeline');
+  if (!manifest.scenes.some((s) => s.durationSec)) {
+    log.warn("No scene durations yet — run 'voice' first so the timeline can be timed. Exporting anyway (gaps).");
+  }
+  exportPremiere(manifest, ctx.buildDir, assemblyConfig(ctx));
+  log.dim('Import into Premiere: File ▸ Import ▸ select the .premiere.xml');
+  return manifest;
+}
+
 async function cmdShownotes(ctx) {
   const manifest = loadManifest(ctx);
   log.step('Show notes: chapters + metadata');
@@ -192,16 +219,18 @@ async function cmdAll(ctx, flags) {
   await cmdVoice(ctx, flags);
   await cmdAvatar(ctx, flags);
   await cmdAssemble(ctx, flags);
+  await cmdProject(ctx, flags);
   await cmdShownotes(ctx);
-  log.step('Done. Open build/final.mp4 in Camtasia for final polish, and use build/shownotes.md when posting.');
+  log.step('Done. Edit build/*.premiere.xml in Premiere (or use build/final.mp4 as a flat preview), and use build/shownotes.md when posting.');
 }
 
 // ---------------------------------------------------------------------------
 const HELP = `lecture-video pipeline
 
-  node pipeline/lecture.mjs <command> --lecture <id> [--force] [--dry-run] [--skip-avatar]
+  node pipeline/lecture.mjs <command> --lecture <id> [--force] [--dry-run] [--skip-avatar] [--target premiere]
 
-commands: prep | voice | avatar | assemble | shownotes | all | doctor`;
+commands: prep | voice | avatar | assemble | project | shownotes | all | doctor
+  project   export an editable Premiere timeline (FCP7 XML): V1 slides/b-roll, V2 avatar PiP, A1 voiceover`;
 
 async function main() {
   const { _: positional, flags } = parseArgs(process.argv.slice(2));
@@ -217,6 +246,7 @@ async function main() {
     case 'voice': return void (await cmdVoice(ctx, flags));
     case 'avatar': return void (await cmdAvatar(ctx, flags));
     case 'assemble': return void (await cmdAssemble(ctx, flags));
+    case 'project': return void (await cmdProject(ctx, flags));
     case 'shownotes': return void (await cmdShownotes(ctx));
     case 'all': return cmdAll(ctx, flags);
     default: log.err(`Unknown command '${command}'.`); console.log(HELP); process.exit(1);

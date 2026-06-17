@@ -19,9 +19,25 @@ own b-roll. Everything up to a postable rough cut is one command.
 | Update script in Claude | Write `script.md` (Claude can draft/edit it) |
 | ElevenLabs voice | `voice` — chunks long scripts, stitches audio in your voice |
 | HeyGen clone | `avatar` — feeds your ElevenLabs audio to HeyGen so lips match your voice |
-| Combine in Camtasia | `assemble` — ffmpeg rough cut you import into Camtasia |
+| Combine in Camtasia / Premiere | `assemble` — flat ffmpeg rough cut · **`project` — editable Premiere timeline (FCP7 XML)** |
 | Add b-roll / updates | `[broll: clip.mp4]` / `[slide: 03.png]` hints in the script |
-| Final edit & post | Camtasia for polish; `shownotes` gives titles/description/chapters |
+| Final edit & post | Premiere/Camtasia for polish; `shownotes` gives titles/description/chapters |
+
+### Two ways to get to final edit
+
+- **`assemble`** → a flat `final.mp4` rough cut (quick preview, or post as-is).
+- **`project`** → an **editable Adobe Premiere sequence** (`*.premiere.xml`, FCP7
+  XMEML). Import via *File ▸ Import* and you get real tracks to polish:
+  - **V1** — slides / b-roll background per scene
+  - **V2** — your avatar, pre-scaled + positioned as a PiP (a Basic Motion filter
+    you can nudge in Premiere's *Motion* controls)
+  - **A1** — your voiceover, timed scene-by-scene
+
+  ```bash
+  node pipeline/lecture.mjs project --lecture example-lecture --target premiere
+  ```
+  Run `voice` first so scenes have real durations. `all` produces both the
+  rough cut and the Premiere project.
 
 ## Setup
 
@@ -47,6 +63,7 @@ node pipeline/lecture.mjs prep      --lecture example-lecture
 node pipeline/lecture.mjs voice     --lecture example-lecture
 node pipeline/lecture.mjs avatar    --lecture example-lecture
 node pipeline/lecture.mjs assemble  --lecture example-lecture
+node pipeline/lecture.mjs project   --lecture example-lecture --target premiere
 node pipeline/lecture.mjs shownotes --lecture example-lecture
 ```
 
