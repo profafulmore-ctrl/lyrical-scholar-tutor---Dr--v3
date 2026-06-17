@@ -1,0 +1,10 @@
+# Secrets
+.env
+
+# Generated output (audio, avatar clips, renders, final cut, metadata)
+lectures/**/build/
+
+# Source media you drop in per lecture (large binaries — keep out of git)
+lectures/**/slides/
+lectures/**/broll/
+lectures/**/assets/

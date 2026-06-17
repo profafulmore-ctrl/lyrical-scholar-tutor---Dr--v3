@@ -1,0 +1,13 @@
+{
+  "name": "lecture-video-pipeline",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Script -> ElevenLabs voice -> HeyGen avatar -> ffmpeg rough cut -> Claude show notes.",
+  "bin": { "lecture": "./lecture.mjs" },
+  "scripts": {
+    "lecture": "node lecture.mjs",
+    "doctor": "node lecture.mjs doctor"
+  },
+  "engines": { "node": ">=18" }
+}

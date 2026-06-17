@@ -1,0 +1,12 @@
+{
+  "_comment": "Optional per-lecture overrides for the assemble step. Delete keys to fall back to .env / defaults.",
+  "width": 1920,
+  "height": 1080,
+  "fps": 30,
+  "avatarScale": 0.28,
+  "avatarPosition": "bottom-right",
+  "margin": 40,
+  "bgColor": "0x101418",
+  "preset": "medium",
+  "crf": 20
+}
